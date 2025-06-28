@@ -11,7 +11,7 @@ document.body.innerHTML = `
     <div class="chat-container">
       <div id="chat-messages" class="chat-messages"></div>
       <div class="chat-input-container">
-        <input type="text" id="chat-input" placeholder="Type your message here..." />
+        <textarea id="chat-input" placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)" rows="1"></textarea>
         <button id="send-button">Send</button>
       </div>
     </div>
@@ -39,6 +39,7 @@ describe('GrocerGenieChat', () => {
     // Reset DOM
     document.getElementById('chat-messages').innerHTML = '';
     document.getElementById('chat-input').value = '';
+    document.getElementById('chat-input').style.height = '50px';
     document.getElementById('send-button').disabled = false;
     
     // Reset fetch mock
@@ -57,6 +58,7 @@ describe('GrocerGenieChat', () => {
       expect(grocerGenie.chatMessages).toBe(document.getElementById('chat-messages'));
       expect(grocerGenie.chatInput).toBe(document.getElementById('chat-input'));
       expect(grocerGenie.sendButton).toBe(document.getElementById('send-button'));
+      expect(grocerGenie.chatContainer).toBe(document.querySelector('.chat-container'));
     });
 
     test('should set up event listeners', () => {
@@ -70,6 +72,129 @@ describe('GrocerGenieChat', () => {
       const enterEvent = new KeyboardEvent('keypress', { key: 'Enter' });
       chatInput.dispatchEvent(enterEvent);
       // Should trigger sendMessage (we'll test this behavior in integration tests)
+    });
+
+    test('should scroll to bottom on initialization', async () => {
+      const chatMessages = document.getElementById('chat-messages');
+      
+      // Mock requestAnimationFrame to execute immediately
+      const originalRequestAnimationFrame = global.requestAnimationFrame;
+      global.requestAnimationFrame = (callback) => {
+        callback();
+        return 1;
+      };
+      
+      // Mock scrollHeight and scrollTop
+      Object.defineProperty(chatMessages, 'scrollHeight', {
+        value: 1000,
+        configurable: true
+      });
+      Object.defineProperty(chatMessages, 'scrollTop', {
+        value: 0,
+        writable: true,
+        configurable: true
+      });
+      
+      // Create new instance to trigger initialization scroll
+      new GrocerGenieChat();
+      
+      // Wait for next tick to ensure requestAnimationFrame has executed
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      expect(chatMessages.scrollTop).toBe(1000);
+      
+      // Restore original requestAnimationFrame
+      global.requestAnimationFrame = originalRequestAnimationFrame;
+    });
+  });
+
+  describe('Auto-resize Functionality', () => {
+    test('should auto-resize textarea on input', () => {
+      const chatInput = document.getElementById('chat-input');
+      const originalHeight = chatInput.style.height;
+      
+      // Simulate typing a multi-line message
+      chatInput.value = 'Line 1\nLine 2\nLine 3';
+      chatInput.dispatchEvent(new Event('input'));
+      
+      // Height should have changed
+      expect(chatInput.style.height).not.toBe(originalHeight);
+    });
+
+    test('should limit textarea height to maximum', () => {
+      const chatInput = document.getElementById('chat-input');
+      
+      // Create a very long message that would exceed max height
+      const longMessage = 'Line\n'.repeat(50);
+      chatInput.value = longMessage;
+      chatInput.dispatchEvent(new Event('input'));
+      
+      // Height should be limited to max-height (120px)
+      const heightValue = parseInt(chatInput.style.height);
+      expect(heightValue).toBeLessThanOrEqual(120);
+    });
+
+    test('should reset textarea height after sending message', async () => {
+      const chatInput = document.getElementById('chat-input');
+      
+      // Set a custom height
+      chatInput.style.height = '100px';
+      chatInput.value = 'Test message';
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ type: 'text', message: 'Response' })
+      });
+      
+      await grocerGenie.sendMessage();
+      
+      // Height should be reset to default
+      expect(chatInput.style.height).toBe('50px');
+    });
+  });
+
+  describe('Keyboard Handling', () => {
+    test('should send message on Enter key press', () => {
+      const chatInput = document.getElementById('chat-input');
+      chatInput.value = 'Test message';
+      
+      // Mock sendMessage method
+      grocerGenie.sendMessage = jest.fn();
+      
+      const enterEvent = new KeyboardEvent('keypress', { key: 'Enter' });
+      chatInput.dispatchEvent(enterEvent);
+      
+      expect(grocerGenie.sendMessage).toHaveBeenCalled();
+    });
+
+    test('should not send message on Shift+Enter (should create new line)', () => {
+      const chatInput = document.getElementById('chat-input');
+      chatInput.value = 'Test message';
+      
+      // Mock sendMessage method
+      grocerGenie.sendMessage = jest.fn();
+      
+      const shiftEnterEvent = new KeyboardEvent('keypress', { key: 'Enter', shiftKey: true });
+      chatInput.dispatchEvent(shiftEnterEvent);
+      
+      expect(grocerGenie.sendMessage).not.toHaveBeenCalled();
+    });
+
+    test('should focus input after sending message', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ type: 'text', message: 'Response' })
+      });
+      
+      const chatInput = document.getElementById('chat-input');
+      chatInput.value = 'Test message';
+      
+      // Mock focus method
+      chatInput.focus = jest.fn();
+      
+      await grocerGenie.sendMessage();
+      
+      expect(chatInput.focus).toHaveBeenCalled();
     });
   });
 
@@ -112,8 +237,15 @@ describe('GrocerGenieChat', () => {
       expect(addedElement.textContent).toBe('Test element content');
     });
 
-    test('should scroll to bottom after adding message', () => {
+    test('should scroll to bottom after adding message', async () => {
       const chatMessages = document.getElementById('chat-messages');
+      
+      // Mock requestAnimationFrame to execute immediately
+      const originalRequestAnimationFrame = global.requestAnimationFrame;
+      global.requestAnimationFrame = (callback) => {
+        callback();
+        return 1;
+      };
       
       // Mock scrollHeight and scrollTop
       Object.defineProperty(chatMessages, 'scrollHeight', {
@@ -128,7 +260,78 @@ describe('GrocerGenieChat', () => {
       
       grocerGenie.addMessage('Test message', 'user');
       
+      // Wait for next tick to ensure requestAnimationFrame has executed
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
       expect(chatMessages.scrollTop).toBe(1000);
+      
+      // Restore original requestAnimationFrame
+      global.requestAnimationFrame = originalRequestAnimationFrame;
+    });
+  });
+
+  describe('Scrolling Behavior', () => {
+    test('should use requestAnimationFrame for smooth scrolling', () => {
+      const chatMessages = document.getElementById('chat-messages');
+      
+      // Mock requestAnimationFrame
+      const mockRequestAnimationFrame = jest.fn();
+      global.requestAnimationFrame = mockRequestAnimationFrame;
+      
+      // Mock scrollHeight and scrollTop
+      Object.defineProperty(chatMessages, 'scrollHeight', {
+        value: 1000,
+        configurable: true
+      });
+      Object.defineProperty(chatMessages, 'scrollTop', {
+        value: 0,
+        writable: true,
+        configurable: true
+      });
+      
+      grocerGenie.scrollToBottom();
+      
+      expect(mockRequestAnimationFrame).toHaveBeenCalled();
+    });
+
+    test('should detect if scrolled to bottom', () => {
+      const chatMessages = document.getElementById('chat-messages');
+      
+      // Mock properties for scrolled to bottom scenario
+      Object.defineProperty(chatMessages, 'scrollTop', {
+        value: 950,
+        configurable: true
+      });
+      Object.defineProperty(chatMessages, 'clientHeight', {
+        value: 100,
+        configurable: true
+      });
+      Object.defineProperty(chatMessages, 'scrollHeight', {
+        value: 1000,
+        configurable: true
+      });
+      
+      expect(grocerGenie.isScrolledToBottom()).toBe(true);
+    });
+
+    test('should detect if not scrolled to bottom', () => {
+      const chatMessages = document.getElementById('chat-messages');
+      
+      // Mock properties for not scrolled to bottom scenario
+      Object.defineProperty(chatMessages, 'scrollTop', {
+        value: 0,
+        configurable: true
+      });
+      Object.defineProperty(chatMessages, 'clientHeight', {
+        value: 100,
+        configurable: true
+      });
+      Object.defineProperty(chatMessages, 'scrollHeight', {
+        value: 1000,
+        configurable: true
+      });
+      
+      expect(grocerGenie.isScrolledToBottom()).toBe(false);
     });
   });
 
@@ -262,6 +465,30 @@ describe('GrocerGenieChat', () => {
       
       expect(image).toBeNull();
     });
+
+    test('should handle image loading error', () => {
+      const dataWithInvalidImage = {
+        ...sampleMealPlanData,
+        meal_plan: [{
+          id: '1',
+          name: 'Recipe with Invalid Image',
+          image: 'https://invalid-url.com/image.jpg',
+          ingredients: []
+        }]
+      };
+      
+      grocerGenie.renderMealPlan(dataWithInvalidImage);
+      
+      const chatMessages = document.getElementById('chat-messages');
+      const image = chatMessages.querySelector('img');
+      
+      expect(image).not.toBeNull();
+      
+      // Simulate image error
+      image.dispatchEvent(new Event('error'));
+      
+      expect(image.style.display).toBe('none');
+    });
   });
 
   describe('Bot Response Handling', () => {
@@ -349,7 +576,7 @@ describe('GrocerGenieChat', () => {
       
       await grocerGenie.sendMessage();
       
-      expect(fetch).toHaveBeenCalledWith('http://localhost:5000/chat-with-agent', {
+      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/chat-with-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -415,35 +642,16 @@ describe('GrocerGenieChat', () => {
       
       expect(chatInput.value).toBe('');
     });
-
-    test('should focus input after sending message', async () => {
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ type: 'text', message: 'Response' })
-      });
-      
-      const chatInput = document.getElementById('chat-input');
-      chatInput.value = 'Test message';
-      
-      // Mock focus method
-      chatInput.focus = jest.fn();
-      
-      await grocerGenie.sendMessage();
-      
-      expect(chatInput.focus).toHaveBeenCalled();
-    });
   });
 
   describe('Event Listener Integration', () => {
-    test('should send message on Enter key press', () => {
-      const chatInput = document.getElementById('chat-input');
-      chatInput.value = 'Test message';
+    test('should send message on send button click', () => {
+      const sendButton = document.getElementById('send-button');
       
       // Mock sendMessage method
       grocerGenie.sendMessage = jest.fn();
       
-      const enterEvent = new KeyboardEvent('keypress', { key: 'Enter' });
-      chatInput.dispatchEvent(enterEvent);
+      sendButton.click();
       
       expect(grocerGenie.sendMessage).toHaveBeenCalled();
     });
@@ -459,17 +667,6 @@ describe('GrocerGenieChat', () => {
       chatInput.dispatchEvent(spaceEvent);
       
       expect(grocerGenie.sendMessage).not.toHaveBeenCalled();
-    });
-
-    test('should send message on send button click', () => {
-      const sendButton = document.getElementById('send-button');
-      
-      // Mock sendMessage method
-      grocerGenie.sendMessage = jest.fn();
-      
-      sendButton.click();
-      
-      expect(grocerGenie.sendMessage).toHaveBeenCalled();
     });
   });
 

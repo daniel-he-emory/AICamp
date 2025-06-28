@@ -3,18 +3,36 @@ class GrocerGenieChat {
         this.chatMessages = document.getElementById('chat-messages');
         this.chatInput = document.getElementById('chat-input');
         this.sendButton = document.getElementById('send-button');
+        this.chatContainer = document.querySelector('.chat-container');
         
         this.initializeEventListeners();
+        this.scrollToBottom();
     }
     
     initializeEventListeners() {
         this.sendButton.addEventListener('click', () => this.sendMessage());
         
         this.chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 this.sendMessage();
             }
         });
+        
+        // Auto-resize textarea
+        this.chatInput.addEventListener('input', () => {
+            this.autoResizeTextarea();
+        });
+        
+        // Ensure chat input is visible when keyboard appears on mobile
+        this.chatInput.addEventListener('focus', () => {
+            setTimeout(() => this.scrollToBottom(), 100);
+        });
+    }
+    
+    autoResizeTextarea() {
+        this.chatInput.style.height = 'auto';
+        this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 120) + 'px';
     }
     
     async sendMessage() {
@@ -24,8 +42,11 @@ class GrocerGenieChat {
         // Add user message to chat
         this.addMessage(message, 'user');
         
-        // Clear input and disable send button
+        // Clear input and reset height
         this.chatInput.value = '';
+        this.chatInput.style.height = '50px';
+        
+        // Disable send button
         this.sendButton.disabled = true;
         
         // Show typing indicator
@@ -77,8 +98,21 @@ class GrocerGenieChat {
         messageDiv.appendChild(messageContent);
         this.chatMessages.appendChild(messageDiv);
         
-        // Scroll to bottom
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        // Scroll to bottom with smooth animation
+        this.scrollToBottom();
+    }
+    
+    scrollToBottom() {
+        // Use requestAnimationFrame for smooth scrolling
+        requestAnimationFrame(() => {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        });
+    }
+    
+    isScrolledToBottom() {
+        const threshold = 50; // pixels from bottom
+        return this.chatMessages.scrollTop + this.chatMessages.clientHeight >= 
+               this.chatMessages.scrollHeight - threshold;
     }
     
     handleBotResponse(data) {
@@ -131,6 +165,9 @@ class GrocerGenieChat {
             const img = document.createElement('img');
             img.src = recipe.image;
             img.alt = recipe.name;
+            img.onerror = () => {
+                img.style.display = 'none';
+            };
             card.appendChild(img);
         }
         
@@ -197,7 +234,7 @@ class GrocerGenieChat {
         this.chatMessages.appendChild(typingDiv);
         
         // Scroll to bottom
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        this.scrollToBottom();
     }
     
     hideTypingIndicator() {

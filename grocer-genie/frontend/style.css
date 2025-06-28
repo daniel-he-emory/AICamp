@@ -9,6 +9,7 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
+    overflow: hidden; /* Prevent body scrolling */
 }
 
 .container {
@@ -28,6 +29,7 @@ header {
     color: white;
     padding: 20px;
     text-align: center;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 header h1 {
@@ -44,20 +46,55 @@ header p {
     flex: 1;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    min-height: 0; /* Important for flex child scrolling */
 }
 
 .chat-messages {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
     background: #f8f9fa;
+    scroll-behavior: smooth; /* Smooth scrolling */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #c1c1c1 #f1f1f1; /* Firefox */
+}
+
+/* Webkit scrollbar styling */
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 .message {
     margin-bottom: 20px;
     display: flex;
     align-items: flex-start;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .user-message {
@@ -73,6 +110,8 @@ header p {
     padding: 15px 20px;
     border-radius: 20px;
     position: relative;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .user-message .message-content {
@@ -152,6 +191,7 @@ header p {
     border-top: 1px solid #e0e0e0;
     display: flex;
     gap: 10px;
+    flex-shrink: 0; /* Prevent input container from shrinking */
 }
 
 #chat-input {
@@ -161,6 +201,9 @@ header p {
     border-radius: 25px;
     outline: none;
     font-size: 16px;
+    resize: none;
+    min-height: 50px;
+    max-height: 120px;
 }
 
 #chat-input:focus {
@@ -177,6 +220,7 @@ header p {
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.3s;
+    flex-shrink: 0; /* Prevent button from shrinking */
 }
 
 #send-button:hover {
@@ -231,9 +275,13 @@ header p {
 }
 
 @media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    
     .container {
         height: 95vh;
-        margin: 10px;
+        margin: 0;
     }
     
     .message-content {
@@ -242,5 +290,13 @@ header p {
     
     header h1 {
         font-size: 2em;
+    }
+    
+    .chat-messages {
+        padding: 15px;
+    }
+    
+    .chat-input-container {
+        padding: 15px;
     }
 }
