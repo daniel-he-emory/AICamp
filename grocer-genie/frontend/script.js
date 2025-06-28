@@ -33,7 +33,7 @@ class GrocerGenieChat {
         
         try {
             // Send message to backend
-            const response = await fetch('http://localhost:5001/chat-with-agent', {
+            const response = await fetch('http://localhost:5000/chat-with-agent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
