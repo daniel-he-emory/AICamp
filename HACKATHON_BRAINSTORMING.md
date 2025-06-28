@@ -1,7 +1,7 @@
 # 🚀 Hackathon Brainstorming & Task Assignment
 
 ## 📋 Team Information
-- **Team Name**: SmartBites
+- **Team Name**: AICamp Team
 - **Event**: [Hackathon Name]
 - **Date**: [Event Date]
 - **Duration**: [Event Duration]
@@ -10,158 +10,181 @@
 
 ## 💡 Project Ideas Brainstorming
 
-### Idea 1: NutriMCP – Personalized Meal Planner with Auto-Grocery Purchasing
+### Idea 1: AICamp – Smart Grocery Shopping Assistant
 
 **Description**:  
-A web app that designs personalized meal plans based on user demographics, dietary needs, and medical conditions (e.g., diabetes, hypertension), and automatically purchases the necessary groceries via grocery store MCP (Multi-Channel Platform) APIs.
+An AI-powered grocery shopping assistant that helps users find the best deals, manage shopping lists, and optimize their grocery purchases using Kroger's API.
 
 **Problem Solved**:  
-Helps users eat healthier while saving time by automating both planning and shopping. Solves friction between health advice and execution.
+Simplifies grocery shopping by providing personalized recommendations, price comparisons, and smart list management for Kroger customers.
 
 **Target Audience**:  
-- Health-conscious individuals  
-- People with chronic conditions (e.g., diabetes, allergies)  
-- Busy professionals  
-- Elderly users or caregivers  
+- Kroger customers
+- Budget-conscious shoppers
+- Busy families
+- Health-conscious individuals
 
 **Tech Stack**:  
-- Frontend: React + Tailwind CSS  
-- Backend: FastAPI (Python)  
-- Database: PostgreSQL + Redis  
-- APIs/Services: OpenAI, USDA FoodData Central, Instacart/Walmart MCP, Stripe  
+- Frontend: React.js with modern UI components
+- Backend: Node.js/Express or Python/Flask
+- Database: PostgreSQL or MongoDB
+- APIs/Services: Kroger API (Cart, Locations, Products, Profile)
 
 **Features**:  
-- [ ] Personalized meal plan generator (AI-based)  
-- [ ] Nutrition + allergen checker  
-- [ ] One-click grocery cart integration (via MCP)  
+- [ ] Smart shopping list management
+- [ ] Real-time price tracking and deal alerts
+- [ ] Personalized product recommendations
+- [ ] Store location finder with inventory
+- [ ] Budget tracking and spending analytics
+- [ ] Recipe integration with ingredient shopping
 
 **Pros**:  
-- Automates entire “plan → shop” journey  
-- Addresses health and accessibility use cases  
+- Direct integration with Kroger's extensive product database
+- Real-time inventory and pricing data
+- Established API with good documentation
+- Large potential user base (Kroger customers)
 
 **Cons**:  
-- Need to integrate several 3rd party APIs  
-- Need dietary logic that is medically accurate  
+- Limited to Kroger stores only
+- API rate limits and authentication complexity
+- Requires OAuth2 implementation
 
 ---
 
-### Idea 2: FitFuel – Meal Planning for Fitness Enthusiasts
+### Idea 2: AICamp – Meal Planning & Grocery Optimization
 
 **Description**:  
-Meal planner that generates weekly meal prep recipes aligned to fitness goals (e.g., muscle gain, fat loss), including calorie and macro tracking.
+AI-powered meal planning app that creates shopping lists optimized for Kroger's inventory and pricing.
 
 **Problem Solved**:  
-Removes guesswork from meal planning for gym-goers.
+Reduces food waste, saves money, and simplifies meal planning for Kroger shoppers.
 
 **Target Audience**:  
-Fitness enthusiasts, athletes, personal trainers  
+Meal planners, families, health-conscious individuals
 
 **Tech Stack**:  
-- Frontend: Vue.js  
-- Backend: Node.js + Express  
-- Database: MongoDB  
-- APIs/Services: FitnessPal API, USDA API  
+- Frontend: React.js with drag-and-drop meal planning interface
+- Backend: Node.js/Express
+- Database: PostgreSQL
+- APIs/Services: Kroger API, Recipe APIs (optional)
 
 **Features**:  
-- [ ] Goal-based recipe generation  
-- [ ] Macro calculator  
-- [ ] Grocery list export  
+- [ ] AI-generated meal plans based on preferences
+- [ ] Automatic shopping list generation
+- [ ] Price optimization across Kroger locations
+- [ ] Nutritional tracking and dietary restrictions
+- [ ] Leftover ingredient suggestions
 
 **Pros**:  
-- Narrow and focused  
-- Fast implementation  
+- Comprehensive meal-to-shopping workflow
+- Potential for significant cost savings
+- Health and nutrition focus
 
 **Cons**:  
-- Limited market outside fitness  
-- Doesn’t integrate shopping directly  
+- Complex AI implementation for meal planning
+- Requires extensive recipe database
+- More complex user onboarding
 
 ---
 
-### Idea 3: CareMeal – Senior Meal Companion
+### Idea 3: AICamp – Social Grocery Shopping
 
 **Description**:  
-Tool for caregivers of elderly patients to plan safe, tasty, easy-to-chew meals that comply with medication and health conditions.
+Social platform for grocery shopping where users can share lists, split costs, and discover new products through Kroger's network.
 
 **Problem Solved**:  
-Improves caregiving by reducing food-related health incidents  
+Makes grocery shopping social and collaborative, especially for roommates, families, and groups.
 
 **Target Audience**:  
-Elderly people, caregivers, family  
+Roommates, families, social groups, budget-conscious shoppers
 
 **Tech Stack**:  
-- Frontend: Svelte  
-- Backend: Flask  
-- Database: Firebase  
-- APIs/Services: Medications + diet restriction lookup  
+- Frontend: React.js with real-time features
+- Backend: Node.js/Express with Socket.io
+- Database: PostgreSQL
+- APIs/Services: Kroger API, Social features
 
 **Features**:  
-- [ ] Elder-friendly recipe generator  
-- [ ] Warning system for ingredient-med conflicts  
-- [ ] Caregiver dashboard  
+- [ ] Shared shopping lists and cost splitting
+- [ ] Product recommendations from friends
+- [ ] Group buying for bulk discounts
+- [ ] Shopping trip coordination
+- [ ] Social features (reviews, ratings, photos)
 
 **Pros**:  
-- Impactful socially  
-- Targets underserved market  
+- Unique social angle in grocery shopping
+- Network effects potential
+- Collaborative cost savings
 
 **Cons**:  
-- Requires domain expertise  
-- Lower generalizability  
+- Complex social features implementation
+- Privacy concerns with shared data
+- Requires critical mass of users
 
 ---
 
 ## 🎯 Final Project Decision
 
-**Selected Project**: NutriMCP – Personalized Meal Planner with Auto-Grocery Purchasing  
+**Selected Project**: AICamp – Smart Grocery Shopping Assistant
 
 **Why this project?**:  
-- Combines personalization + automation + e-commerce  
-- Broad consumer use case  
-- Potential for real-world adoption  
+- Leverages existing Kroger API access and credentials
+- Clear value proposition for users
+- Feasible implementation within hackathon timeframe
+- Strong foundation for future enhancements
 
 **MVP Features**:  
-- [ ] AI-powered meal plan from user profile  
-- [ ] Ingredient extraction and grocery list generation  
-- [ ] MCP API integration to place grocery order  
+- [ ] User authentication with Kroger OAuth2
+- [ ] Product search and browsing using Kroger API
+- [ ] Shopping list creation and management
+- [ ] Basic price comparison and deal detection
+- [ ] Store location finder
 
 **Stretch Goals** (if time permits):  
-- [ ] Dynamic substitution (if item is out of stock)  
-- [ ] Real-time nutrition tracking with wearable integration  
+- [ ] AI-powered product recommendations
+- [ ] Budget tracking and spending analytics
+- [ ] Recipe integration
+- [ ] Push notifications for deals
 
 ---
 
 ## 👥 Team Roles & Responsibilities
 
 ### Team Member 1: Alex  
-**Role**: Backend Developer  
-**Skills**: Python, FastAPI, API integration  
+**Role**: Frontend Developer  
+**Skills**: React.js, JavaScript, HTML/CSS, UI/UX  
 **Responsibilities**:  
-- [ ] Build meal plan API  
-- [ ] Integrate grocery MCP  
-- [ ] User profile management  
+- [ ] Build responsive React frontend
+- [ ] Implement Kroger OAuth2 flow
+- [ ] Create shopping list interface
+- [ ] Design product browsing experience
 
 ### Team Member 2: Jamie  
-**Role**: Frontend Developer  
-**Skills**: React, Tailwind, UX design  
+**Role**: Backend Developer  
+**Skills**: Node.js/Express, API integration, OAuth2  
 **Responsibilities**:  
-- [ ] Build user profile form  
-- [ ] Display meal plans and grocery carts  
-- [ ] Link to checkout  
+- [ ] Set up Express.js backend
+- [ ] Implement Kroger API integration
+- [ ] Handle OAuth2 authentication flow
+- [ ] Create RESTful APIs for frontend
 
 ### Team Member 3: Sam  
-**Role**: Data & AI Engineer  
-**Skills**: GPT API, NLP, food dataset parsing  
+**Role**: Full-Stack Developer  
+**Skills**: JavaScript, Database design, API development  
 **Responsibilities**:  
-- [ ] Meal generation prompt tuning  
-- [ ] Nutrition fact extraction  
-- [ ] Food allergen/diet checks  
+- [ ] Design and implement database schema
+- [ ] Build user management system
+- [ ] Implement shopping list CRUD operations
+- [ ] Handle data caching and optimization
 
 ### Team Member 4: Casey  
-**Role**: Project Manager & QA  
-**Skills**: Product planning, testing, coordination  
+**Role**: UI/UX Designer & Project Manager  
+**Skills**: Figma, User research, Project coordination  
 **Responsibilities**:  
-- [ ] Task assignment  
-- [ ] Testing flows  
-- [ ] Presentation & demo  
+- [ ] Design user interface and experience
+- [ ] Manage project timeline and deliverables
+- [ ] Conduct user testing and feedback
+- [ ] Prepare demo and presentation
 
 ---
 
@@ -175,62 +198,77 @@ Elderly people, caregivers, family
 - [x] Assign initial tasks  
 
 ### Phase 2: Core Development (Hour 2-8)  
-- [ ] Backend: meal plan API  
-- [ ] Frontend: user profile + result page  
-- [ ] Database setup for users and preferences  
-- [ ] Grocery API endpoint integration  
+- [ ] Implement Kroger OAuth2 authentication
+- [ ] Build basic product search and browsing
+- [ ] Create shopping list functionality
+- [ ] Set up database and user management
+- [ ] Connect frontend to backend APIs
 
 ### Phase 3: Features & Polish (Hour 8-12)  
-- [ ] UI polish and styling  
-- [ ] Add dietary warnings  
-- [ ] Testing flows  
+- [ ] Add price comparison features
+- [ ] Implement store location finder
+- [ ] Enhance UI/UX design
+- [ ] Add error handling and validation
+- [ ] Testing and bug fixes
 
 ### Phase 4: Final Touches (Hour 12-14)  
-- [ ] README and walkthrough  
-- [ ] Live demo prep  
-- [ ] Team pitch practice  
+- [ ] Complete documentation
+- [ ] Prepare demo and presentation
+- [ ] Final testing and optimization
+- [ ] Deploy application
 
 ---
 
 ## 🛠️ Technical Decisions
 
 ### Architecture  
-- **Frontend Framework**: React  
-- **Backend Framework**: FastAPI  
-- **Database**: PostgreSQL  
-- **Deployment**: Render / Vercel  
+- **Frontend Framework**: React.js with hooks and context
+- **Backend Framework**: Node.js with Express.js
+- **Database**: PostgreSQL for user data and lists
+- **Deployment**: Vercel (frontend) + Railway/Heroku (backend)
 
 ### APIs & Services  
-- [ ] OpenAI API: meal planning  
-- [ ] USDA FoodData API: nutrition  
-- [ ] Instacart / Walmart MCP: grocery purchasing  
+- [ ] **Kroger API - Cart**: `cart.basic:write` for shopping cart management
+- [ ] **Kroger API - Locations**: Store finder and inventory
+- [ ] **Kroger API - Products**: `product.compact` for product data
+- [ ] **Kroger API - Profile**: `profile.compact` for user information
 
 ### Development Tools  
-- **Version Control**: Git + GitHub  
-- **IDE/Editor**: VS Code  
-- **Communication**: Discord  
-- **Project Management**: Trello  
+- **Version Control**: Git + GitHub
+- **IDE/Editor**: VS Code
+- **Communication**: Discord
+- **Project Management**: Trello
+
+### Kroger API Credentials
+- **Client ID**: `aicamp-bbc675d6`
+- **Client Secret**: `w4ggLVF303sXVn-_O-ag-PYS3pRZifD4m-FqyStw`
+- **Redirect URI**: `https://api.kroger.com/v1/connect/oauth2/aicamp-bbc675d6/w4ggLVF303sXVn-_O-ag-PYS3pRZifD4m-FqyStw`
+- **Supported Grant Types**: `authorization_code`, `client_credentials`, `refresh_token`
 
 ---
 
 ## 📝 Notes & Ideas
 
 ### Random Ideas  
-- Idea 1: Add wearable integration for calorie intake  
-- Idea 2: Budget-friendly grocery constraints  
-- Idea 3: Family planning mode  
+- Integration with nutrition apps for health tracking
+- Barcode scanning for quick product lookup
+- Voice commands for hands-free shopping
+- Integration with smart home devices for automatic reordering
 
 ### Resources & References  
-- [USDA API](https://fdc.nal.usda.gov/api-key-signup.html)  
-- [Instacart Developer API](https://www.instacart.com/company/developers)  
-- [OpenAI GPT](https://platform.openai.com/)  
+- [Kroger API Documentation](https://developer.kroger.com/)
+- [OAuth2 Implementation Guide](https://developer.kroger.com/reference/)
+- [React Best Practices](https://react.dev/)
 
 ### Challenges & Solutions  
-**Challenge 1**: Accurate mapping from meals to grocery items  
-- **Solution**: Use NLP and tagging library (e.g., Spoonacular)  
+**Challenge 1**: OAuth2 implementation complexity
+- **Solution**: Use established libraries like Passport.js or Auth0
 
-**Challenge 2**: Multiple diet restrictions  
-- **Solution**: Create a rule engine to filter recipes  
+**Challenge 2**: API rate limits and caching
+- **Solution**: Implement Redis caching and request throttling
+
+**Challenge 3**: Real-time inventory updates
+- **Solution**: Periodic polling with smart caching strategies
 
 ---
 
@@ -238,30 +276,28 @@ Elderly people, caregivers, family
 
 ### Day 1 Progress  
 **What was accomplished?**:  
-- Backend scaffold  
-- Initial meal planner working  
-- MCP API key request sent  
+- Project planning and team formation
+- Kroger API access and credentials setup
+- Basic project structure creation
 
 **What are the blockers?**:  
-- Grocery item standardization  
-- Limited free credits on API  
+- OAuth2 implementation complexity
+- API rate limit understanding
 
 **Next steps**:  
-- Connect frontend to backend  
-- Build shopping cart flow  
+- Set up development environment
+- Begin OAuth2 implementation
+- Create basic frontend structure
 
 ### Day 2 Progress  
 **What was accomplished?**:  
-- Full meal → grocery flow completed  
-- UI design near final  
+- [To be filled during development]
 
 **What are the blockers?**:  
-- Deployment issues  
-- Missing test users  
+- [To be filled during development]
 
 **Next steps**:  
-- Run user test  
-- Polish demo  
+- [To be filled during development]
 
 ---
 
@@ -272,18 +308,21 @@ Elderly people, caregivers, family
 - [x] Repository is public/accessible  
 - [x] README.md is complete  
 - [ ] Code is well-documented  
+- [ ] OAuth2 flow is properly implemented
 
 ### Demo  
 - [x] Demo is prepared  
 - [x] All features work as expected  
 - [ ] Presentation slides are ready  
 - [ ] Team members know their parts  
+- [ ] Kroger API integration is functional
 
 ### Documentation  
 - [x] Project description is clear  
 - [ ] Installation instructions are provided  
-- [ ] API documentation (if applicable)  
+- [ ] API documentation is included  
 - [x] Screenshots/videos of the application  
+- [ ] OAuth2 setup guide for judges
 
 ---
 
@@ -295,11 +334,11 @@ Elderly people, caregivers, family
 - **Final Prep**: 6:00 PM  
 
 ### Communication Channels  
-- **Slack/Discord**: #smartbites-team  
-- **GitHub**: https://github.com/smartbites/hackathon2025  
+- **Slack/Discord**: #aicamp-team  
+- **GitHub**: https://github.com/aicamp/hackathon2025  
 - **Other**: Notion  
 
 ---
 
-*Last Updated: 2025-06-28*  
-*Next Review: 2025-06-29*
+*Last Updated: 2025-01-27*  
+*Next Review: 2025-01-28*
