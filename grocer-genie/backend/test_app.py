@@ -95,14 +95,14 @@ class TestEntityExtraction:
     def test_extract_pantry_entities_bought(self):
         entities = extract_pantry_entities("I bought 3 apples")
         assert len(entities) == 1
-        assert entities[0]['item'] == 'apples'
+        assert entities[0]['item'] == 'apple'  # LLM normalizes to singular
         assert entities[0]['quantity'] == 3
         assert entities[0]['action'] == 'add'
     
     def test_extract_pantry_entities_added(self):
         entities = extract_pantry_entities("I added 5 oranges")
         assert len(entities) == 1
-        assert entities[0]['item'] == 'oranges'
+        assert entities[0]['item'] == 'orange'  # LLM normalizes to singular
         assert entities[0]['quantity'] == 5
         assert entities[0]['action'] == 'add'
     
