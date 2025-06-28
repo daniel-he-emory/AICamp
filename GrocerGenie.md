@@ -86,21 +86,69 @@ This section breaks down each feature into its core function, step-by-step devel
   * **Frontend:** **Vanilla JavaScript** using **DOM manipulation** (document.getElementById, document.createElement, element.innerHTML, element.appendChild).  
   * **Styling (Optional but Recommended):** Use a minimal CSS framework like **Pico.css** or **Water.css**. You just add one line to your HTML, and it provides beautiful, clean styling with no classes to write, which is perfect for a hackathon.
 
-#### Feature 6: Agentic Shopping with Kroger API (NEW)
+#### Feature 6: Agentic Shopping with Kroger API
 
-* **Description:** After the shopping list is generated, the user can command GrocerGenie to add the items to their Kroger shopping cart using the Kroger MCP Server.  
+* **Description:** After the shopping list is generated, the user can command GrocerGenie to add the items to their Kroger shopping cart using the Kroger API integration.  
 * **Development Steps:**  
-  1. **Setup Kroger MCP Server:** The first priority is to get the Kroger MCP Server running. Follow the README.md instructions to register an application on the Kroger Developer Portal, get your credentials (CLIENT\_ID, CLIENT\_SECRET), and configure them in the server's environment.  
+  1. **Setup Kroger API Integration:** Configure the Kroger API credentials and OAuth2 authentication flow.  
   2. **Extend UI:** Add a new button to the UI, "Add to Kroger Cart," which becomes active after a shopping list is generated.  
   3. **Agentic Workflow:** When the user clicks the new button, trigger the agentic shopping logic:  
-     * **Find Products:** For each item in the generated shopping list, the agent must use the search\_products tool from the Kroger MCP to find the corresponding product at the user's preferred store. For the MVP, the agent can simply select the first result returned for each search term.  
+     * **Find Products:** For each item in the generated shopping list, the agent must use the Kroger API to find the corresponding product at the user's preferred store. For the MVP, the agent can simply select the first result returned for each search term.  
      * **Collect Product IDs:** The agent will collect the productId for each item it finds.  
-     * **Add to Cart:** Once all items have been searched, the agent will use the bulk\_add\_to\_cart tool, passing in the list of collected product IDs and their quantities.  
+     * **Add to Cart:** Once all items have been searched, the agent will use the cart API to add items to the user's Kroger shopping cart.  
   4. **User Feedback:** The agent should report its progress back to the user, confirming which items were successfully found and added to the cart, and which (if any) could not be found.  
 * **Tools & Options:**  
-  * **Primary Tool:** The **Kroger MCP Server** as described in the provided README.md.  
-  * **Backend:** The agent's core logic will orchestrate calls to the tools provided by the MCP server (search\_products, bulk\_add\_to\_cart).  
-* **Key Considerations & Limitations:**  
-  * **Authentication:** The agent must handle the initial user authentication flow required by the Kroger API. The MCP server documentation indicates this is handled via a browser prompt.  
-  * **One-Way Cart:** As per the documentation, the Kroger Public API can **add** items to the cart but **cannot view or remove them**. The agent's dialogue with the user must make this clear. It should state, "I have added these items to your Kroger cart. To make changes or check out, please visit the Kroger app or website."  
-  * **Store Location:** The agent should first ensure a preferred store location is set using the set\_preferred\_location tool, as product searches are location-specific.
+  * **Primary Tool:** The **Kroger API** with OAuth2 authentication.  
+  * **Backend:** The agent's core logic will orchestrate calls to the Kroger API endpoints (products, cart, locations).  
+
+### 3\. Kroger API Integration Details
+
+#### App Registration & Credentials
+
+**Application Name:** AICamp  
+**Registered with:** Kroger Developer Portal
+
+#### Permissions & Scopes
+
+The application has been granted access to the following Kroger Public APIs and their associated scopes:
+
+* **Cart:** `cart.basic:write`
+* **Locations**
+* **Products:** `product.compact`
+* **Profile:** `profile.compact`
+
+#### OAuth2 Grant Types
+
+The following OAuth2 grant types are supported:
+
+* `authorization_code`
+* `client_credentials`
+* `refresh_token`
+
+#### Credentials
+
+**Client ID:** `aicamp-bbc675d6`  
+**Client Secret:** `w4ggLVF303sXVn-_O-ag-PYS3pRZifD4m-FqyStw`
+
+When making an OAuth2 access token request, these are required in the authorization header.
+
+#### Redirect URI
+
+The following `REDIRECT_URI` must be used for the Authorization Code grant type:
+
+`https://api.kroger.com/v1/connect/oauth2/aicamp-bbc675d6/w4ggLVF303sXVn-_O-ag-PYS3pRZifD4m-FqyStw`
+
+#### API Endpoints
+
+* **Base URL:** `https://api.kroger.com/v1`
+* **Products:** `/products`
+* **Cart:** `/cart/add`
+* **Locations:** `/locations`
+* **Profile:** `/profile`
+
+#### Implementation Notes
+
+* **Authentication:** The agent must handle the initial user authentication flow required by the Kroger API. This involves redirecting users to the Kroger authorization URL and handling the callback with the authorization code.
+* **One-Way Cart:** As per the documentation, the Kroger Public API can **add** items to the cart but **cannot view or remove them**. The agent's dialogue with the user must make this clear. It should state, "I have added these items to your Kroger cart. To make changes or check out, please visit the Kroger app or website."
+* **Store Location:** The agent should first ensure a preferred store location is set, as product searches are location-specific.
+* **Rate Limits:** Be mindful of API rate limits and implement appropriate caching and throttling mechanisms.
