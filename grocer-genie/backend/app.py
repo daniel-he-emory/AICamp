@@ -6,6 +6,10 @@ import requests
 from datetime import datetime
 import openai
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'grocer-genie-secret-key'
@@ -14,6 +18,14 @@ CORS(app)
 KROGER_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vYXBpLmtyb2dlci5jb20vdjEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiWjRGZDNtc2tJSDg4aXJ0N0xCNWM2Zz09IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhaWNhbXAtYmJjNjc1ZDYiLCJleHAiOjE3NTExNDIyOTUsImlhdCI6MTc1MTE0MDQ5MCwiaXNzIjoiYXBpLmtyb2dlci5jb20iLCJzdWIiOiI1MzgxZDNiMi1mM2JkLTU2NDYtYWI0Zi05YzZmNDUwNjg2NWQiLCJzY29wZSI6InByb2R1Y3QuY29tcGFjdCIsImF1dGhBdCI6MTc1MTE0MDQ5NTQ0MDgyMzk2NCwiYXpwIjoiYWljYW1wLWJiYzY3NWQ2In0.FPrEA7NBTTy_jgLK0xrB-la4hoBUHDO7cmaApJUmtyNSTw1EyiN9T9P8HOFHIE8pqTwTBIKczP4gbnirPe7LcB689CGO68I8TXUP0QTxFQGZNDnAcrUiQKPySo1484OXZO34OtiRN9KXrNfVXUdVQ5-8bxeYmFAZyOMZMrjJ_tCA8lIqUX_3a0DK29Lir2VCROvHqs1KFczq460oQILUtII4XDCSalGpYLY2EU2nNwNzJIV4yr8EjDIlH9gZoPkE4OoQQPNMCWHdNYwWetZ87IFcST7YEOpSu6bZtSMW8I6RSLcWDiegW22RfpcRJzqZ_cSLS2ybZad1iC04Ricm4Q"
 
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+# Check if API key is available
+if not OPENAI_API_KEY:
+    print("WARNING: OPENAI_API_KEY not found in environment variables.")
+    print("Please set your OpenAI API key using one of these methods:")
+    print("1. Create a .env file in the backend directory with: OPENAI_API_KEY=your_key_here")
+    print("2. Set environment variable: export OPENAI_API_KEY=your_key_here")
+    print("3. The app will still work with fallback keyword matching, but AI features will be limited.")
 
 openai.api_key = OPENAI_API_KEY
 
