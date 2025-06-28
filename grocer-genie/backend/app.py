@@ -1,18 +1,36 @@
-import requests
-import openai
-import logging
-import re
-from datetime import datetime
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-import os
 import json
+import os
+import requests
+from datetime import datetime
+import openai
+import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'grocer-genie-secret-key'
 CORS(app)
 
-KROGER_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vYXBpLmtyb2dlci5jb20vdjEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiWjRGZDNtc2tJSDg4aXJ0N0xCNWM2Zz09IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhaWNhbXAtYmJjNjc1ZDYiLCJleHAiOjE3NTExNTU0NDMsImlhdCI6MTc1MTE1MzYzOCwiaXNzIjoiYXBpLmtyb2dlci5jb20iLCJzdWIiOiI1MzgxZDNiMi1mM2JkLTU2NDYtYWI0Zi05YzZmNDUwNjg2NWQiLCJzY29wZSI6InByb2R1Y3QuY29tcGFjdCIsImF1dGhBdCI6MTc1MTE1MzY0Mzc2MzI3OTc0MCwiYXpwIjoiYWljYW1wLWJiYzY3NWQ2In0.aLG3GUODZEdqttlIEyKvtIurrfHuSUECjcSCKQO8JKVxT7REyBXhTm7RkQy6k0oDp5H1f20kXyRtHF1o5EJQ5412Zh0tkHCDvAOHr3X0oTnEfnbI2o1skfIYK4A5NAVPYmhTlzslhY7Ixsr7FFuEZW6P7yoovbuP8p4qfAq3eE4CCqjyc71XJnru6vOVPjEP6bG4tISOTQG6UkmcikdyD3n0nInM7Lz__MYr33_FtTtM2Eo6bJ9lEzoQArTsGANxnXjx2L7sM2pXpNDm0_hORktT1nL7En1W1JkOPEd2lColOmiO91L0dDv_H-NWURKNr7KFChIaiFnN2jyZwreu2A"
+KROGER_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vYXBpLmtyb2dlci5jb20vdjEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiWjRGZDNtc2tJSDg4aXJ0N0xCNWM2Zz09IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhaWNhbXAtYmJjNjc1ZDYiLCJleHAiOjE3NTExNDIyOTUsImlhdCI6MTc1MTE0MDQ5MCwiaXNzIjoiYXBpLmtyb2dlci5jb20iLCJzdWIiOiI1MzgxZDNiMi1mM2JkLTU2NDYtYWI0Zi05YzZmNDUwNjg2NWQiLCJzY29wZSI6InByb2R1Y3QuY29tcGFjdCIsImF1dGhBdCI6MTc1MTE0MDQ5NTQ0MDgyMzk2NCwiYXpwIjoiYWljYW1wLWJiYzY3NWQ2In0.FPrEA7NBTTy_jgLK0xrB-la4hoBUHDO7cmaApJUmtyNSTw1EyiN9T9P8HOFHIE8pqTwTBIKczP4gbnirPe7LcB689CGO68I8TXUP0QTxFQGZNDnAcrUiQKPySo1484OXZO34OtiRN9KXrNfVXUdVQ5-8bxeYmFAZyOMZMrjJ_tCA8lIqUX_3a0DK29Lir2VCROvHqs1KFczq460oQILUtII4XDCSalGpYLY2EU2nNwNzJIV4yr8EjDIlH9gZoPkE4OoQQPNMCWHdNYwWetZ87IFcST7YEOpSu6bZtSMW8I6RSLcWDiegW22RfpcRJzqZ_cSLS2ybZad1iC04Ricm4Q"
+
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+# Check if API key is available
+if not OPENAI_API_KEY:
+    print("WARNING: OPENAI_API_KEY not found in environment variables.")
+    print("Please set your OpenAI API key using one of these methods:")
+    print("1. Create a .env file in the backend directory with: OPENAI_API_KEY=your_key_here")
+    print("2. Set environment variable: export OPENAI_API_KEY=your_key_here")
+    print("3. The app will still work with fallback keyword matching, but AI features will be limited.")
+
+openai.api_key = OPENAI_API_KEY
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class SessionState:
     def __init__(self):
@@ -20,15 +38,13 @@ class SessionState:
         self.current_meal_plan = []
         self.current_shopping_list = []
         self.user_preferences = {}
-        self.pending_intent = None  # Track pending user intent for context
         
     def to_dict(self):
         return {
             'pantry': self.pantry,
             'current_meal_plan': self.current_meal_plan,
             'current_shopping_list': self.current_shopping_list,
-            'user_preferences': self.user_preferences,
-            'pending_intent': self.pending_intent
+            'user_preferences': self.user_preferences
         }
     
     def from_dict(self, data):
@@ -36,7 +52,6 @@ class SessionState:
         self.current_meal_plan = data.get('current_meal_plan', [])
         self.current_shopping_list = data.get('current_shopping_list', [])
         self.user_preferences = data.get('user_preferences', {})
-        self.pending_intent = data.get('pending_intent', None)
 
 def get_session_state():
     if 'state' not in session:
@@ -61,11 +76,148 @@ def save_pantry(pantry):
     with open(pantry_file, 'w') as f:
         json.dump(pantry, f, indent=2)
 
+def call_openai_with_fallback(messages, temperature=0.3, max_tokens=500):
+    """
+    Call OpenAI API with error handling and fallback
+    """
+    try:
+        # Remove temperature parameter if it's not supported by the model
+        params = {
+            "model": "gpt-4o-search-preview",
+            "messages": messages,
+            "max_tokens": max_tokens
+        }
+        
+        response = openai.ChatCompletion.create(**params)
+        return response.choices[0].message.content.strip(), None
+    except Exception as e:
+        logger.error(f"OpenAI API error: {str(e)}")
+        return None, str(e)
+
+def get_intent_classification_prompt():
+    """
+    Return the prompt template for intent classification
+    """
+    return """You are a grocery shopping assistant. Classify the user's message into one of these intents:
+
+- update_pantry: User wants to add, remove, or modify items in their pantry
+- check_pantry: User wants to see what's currently in their pantry
+- request_meal_plan: User wants recipe suggestions or meal planning
+- add_to_cart: User wants to add items to their Kroger shopping cart
+- clarification: Message is unclear or doesn't fit other categories
+
+Examples:
+"I bought 2 onions and a bag of rice" -> update_pantry
+"What's in my pantry?" -> check_pantry
+"I want to cook Italian food tonight" -> request_meal_plan
+"Add these items to my cart" -> add_to_cart
+"Hello" -> clarification
+
+User message: "{message}"
+
+Respond with only the intent name (e.g., "update_pantry")."""
+
+def get_entity_extraction_prompt():
+    """
+    Return the prompt template for entity extraction
+    """
+    return '''You are a grocery shopping assistant. Extract food items, quantities, and actions from the user's message.
+
+Return a JSON array with objects containing:
+- item: the food item name (normalized, lowercase, singular)
+- quantity: numeric quantity (use 1 if not specified)
+- action: "add" (for buying/adding items) or "remove" (for using up, finishing, spoiling, expiring, running out, or throwing away items)
+
+Examples:
+"I bought 2 onions and a bag of rice" -> [{{"item": "onion", "quantity": 2, "action": "add"}}, {{"item": "rice", "quantity": 1, "action": "add"}}]
+"I finished the milk and used up 3 eggs" -> [{{"item": "milk", "quantity": 0, "action": "remove"}}, {{"item": "egg", "quantity": 3, "action": "remove"}}]
+"I got some chicken and 5 apples" -> [{{"item": "chicken", "quantity": 1, "action": "add"}}, {{"item": "apple", "quantity": 5, "action": "add"}}]
+"My eggs spoiled and I threw away the milk" -> [{{"item": "egg", "quantity": 0, "action": "remove"}}, {{"item": "milk", "quantity": 0, "action": "remove"}}]
+"The bread expired and I ran out of cheese" -> [{{"item": "bread", "quantity": 0, "action": "remove"}}, {{"item": "cheese", "quantity": 0, "action": "remove"}}]
+"I added 2 tomatoes and used up the onions" -> [{{"item": "tomato", "quantity": 2, "action": "add"}}, {{"item": "onion", "quantity": 0, "action": "remove"}}]
+
+User message: "{message}"
+
+Respond with only valid JSON:'''
+
+def normalize_ingredient_name(name):
+    """
+    Normalize ingredient names for better matching
+    """
+    # Convert to lowercase and remove common variations
+    name = name.lower().strip()
+    
+    # Common ingredient variations
+    variations = {
+        'tomato': ['tomatoes', 'tomato'],
+        'onion': ['onions', 'onion'],
+        'garlic': ['garlic', 'garlic clove', 'garlic cloves'],
+        'egg': ['eggs', 'egg'],
+        'milk': ['milk', 'whole milk', 'skim milk'],
+        'butter': ['butter', 'unsalted butter', 'salted butter'],
+        'olive oil': ['olive oil', 'extra virgin olive oil', 'evoo'],
+        'salt': ['salt', 'table salt', 'kosher salt'],
+        'pepper': ['pepper', 'black pepper', 'ground pepper'],
+        'flour': ['flour', 'all purpose flour', 'plain flour'],
+        'sugar': ['sugar', 'white sugar', 'granulated sugar'],
+        'rice': ['rice', 'white rice', 'brown rice'],
+        'pasta': ['pasta', 'spaghetti', 'penne', 'fettuccine'],
+        'chicken': ['chicken', 'chicken breast', 'chicken thighs'],
+        'beef': ['beef', 'ground beef', 'beef steak'],
+        'cheese': ['cheese', 'cheddar cheese', 'mozzarella cheese']
+    }
+    
+    # Check if the name matches any variation
+    for base_name, variants in variations.items():
+        if name in variants:
+            return base_name
+    
+    return name
+
+def check_ingredient_availability(ingredient_name, pantry_items):
+    """
+    Check if an ingredient is available in the pantry, accounting for variations
+    """
+    normalized_name = normalize_ingredient_name(ingredient_name)
+    
+    # Check exact match first
+    if ingredient_name in pantry_items:
+        return True, pantry_items[ingredient_name]
+    
+    # Check normalized match
+    if normalized_name in pantry_items:
+        return True, pantry_items[normalized_name]
+    
+    # Check if any pantry item contains the ingredient name
+    for pantry_item, quantity in pantry_items.items():
+        if normalized_name in normalize_ingredient_name(pantry_item):
+            return True, quantity
+    
+    return False, 0
+
 def recognize_intent(message):
     """
-    Simple intent recognition - in a real app, this would use an LLM
-    For now, using keyword matching
+    LLM-powered intent recognition with fallback to keyword matching
     """
+    prompt = get_intent_classification_prompt().format(message=message)
+    messages = [{"role": "user", "content": prompt}]
+    
+    response, error = call_openai_with_fallback(messages, temperature=0.1, max_tokens=50)
+    
+    if response:
+        # Clean response and validate
+        intent = response.lower().strip()
+        valid_intents = ['update_pantry', 'check_pantry', 'request_meal_plan', 'add_to_cart', 'clarification']
+        
+        if intent in valid_intents:
+            logger.info(f"LLM classified intent: {intent}")
+            return intent
+        else:
+            logger.warning(f"LLM returned invalid intent: {intent}, falling back to keyword matching")
+    else:
+        logger.warning(f"LLM intent recognition failed: {error}, falling back to keyword matching")
+    
+    # Fallback to keyword matching
     message_lower = message.lower()
     
     if any(word in message_lower for word in ['pantry', 'have', 'inventory', 'bought', 'finished', 'added', 'removed']):
@@ -83,10 +235,41 @@ def recognize_intent(message):
 
 def extract_pantry_entities(message):
     """
-    Simple entity extraction - in a real app, this would use an LLM
-    For now, using simple parsing
+    LLM-powered entity extraction with fallback to simple parsing
     """
-    # This is a simplified version - in reality, you'd use an LLM for better parsing
+    prompt = get_entity_extraction_prompt().format(message=message)
+    messages = [{"role": "user", "content": prompt}]
+    
+    response, error = call_openai_with_fallback(messages, temperature=0.1, max_tokens=300)
+    
+    if response:
+        try:
+            # Try to parse JSON response
+            entities = json.loads(response)
+            
+            # Validate structure
+            if isinstance(entities, list):
+                valid_entities = []
+                for entity in entities:
+                    if (isinstance(entity, dict) and 
+                        'item' in entity and 'quantity' in entity and 'action' in entity and
+                        entity['action'] in ['add', 'remove'] and
+                        isinstance(entity['quantity'], (int, float))):
+                        valid_entities.append(entity)
+                
+                if valid_entities:
+                    logger.info(f"LLM extracted {len(valid_entities)} entities")
+                    return valid_entities
+                else:
+                    logger.warning("LLM returned invalid entity structure, falling back to simple parsing")
+            else:
+                logger.warning("LLM response is not a list, falling back to simple parsing")
+        except json.JSONDecodeError as e:
+            logger.warning(f"LLM returned invalid JSON: {e}, falling back to simple parsing")
+    else:
+        logger.warning(f"LLM entity extraction failed: {error}, falling back to simple parsing")
+    
+    # Fallback to simple parsing
     entities = []
     
     # Simple patterns for demo
@@ -296,6 +479,179 @@ def add_items_to_kroger_cart(product_ids):
         print(f"Error adding items to Kroger cart: {e}")
         return False, f"Error adding items to cart: {str(e)}"
 
+def get_recipe_selection_prompt(pantry_items, cuisine=None):
+    """
+    Return the prompt template for LLM-powered recipe creation based on pantry
+    """
+    pantry_text = ", ".join([f"{item} ({quantity})" for item, quantity in pantry_items.items()]) if pantry_items else "empty pantry"
+    
+    cuisine_filter = f" Focus on {cuisine} cuisine." if cuisine else ""
+    
+    return f"""You are a creative chef and recipe creator. Based on the user's pantry ingredients, CREATE 3 original recipes they can make.
+
+User's pantry: {pantry_text}
+{cuisine_filter}
+
+Rules for recipe creation:
+1. CREATE original recipes using the available ingredients as the foundation
+2. Only suggest recipes where the user has MOST of the required ingredients (at least 60% of ingredients)
+3. If the user has very few ingredients, create simple recipes with minimal ingredients
+4. For missing ingredients, suggest common substitutions or note they need to buy them
+5. Prioritize recipes that use the most pantry ingredients
+6. Be creative but realistic about what can be made with the available ingredients
+7. Consider ingredient variations (e.g., "eggs" vs "egg", "tomatoes" vs "tomato")
+8. Create recipes that are actually delicious and practical to make
+
+For each recipe, provide:
+- Creative recipe name
+- List of ingredients (mark which ones the user has with "has": true and which they need to buy with "has": false)
+- Detailed cooking instructions (be specific about steps, timing, techniques)
+- Estimated cooking time
+- Optional: cooking tips or variations
+
+Respond in this JSON format:
+{{
+  "recipes": [
+    {{
+      "name": "Creative Recipe Name",
+      "ingredients": [
+        {{"name": "ingredient name", "has": true/false, "substitution": "optional substitution"}}
+      ],
+      "instructions": "Detailed step-by-step cooking instructions with specific techniques, timing, and tips",
+      "cooking_time": "30 minutes",
+      "tips": "Optional cooking tips or variations"
+    }}
+  ]
+}}
+
+IMPORTANT: 
+- CREATE original recipes, don't just list generic dishes
+- Only include ingredients that are actually needed for the recipe
+- Be precise about what the user has vs what they need to buy
+- Make the recipes sound appetizing and achievable
+- Include specific cooking techniques and timing in the instructions
+
+User message: "I want to cook something with what I have" """
+
+def create_recipes_with_llm(pantry_items, cuisine=None):
+    """
+    Use LLM to intelligently CREATE original recipes based on available pantry ingredients
+    """
+    if not pantry_items:
+        # If pantry is empty, return simple recipes that require minimal ingredients
+        return [{
+            "name": "Simple Pasta with Olive Oil",
+            "ingredients": [
+                {"name": "pasta", "has": False, "substitution": None},
+                {"name": "olive oil", "has": False, "substitution": None},
+                {"name": "salt", "has": False, "substitution": None}
+            ],
+            "instructions": "Boil pasta according to package instructions. Drain and toss with olive oil and salt.",
+            "cooking_time": "15 minutes",
+            "tips": "Add some garlic or herbs if you have them for extra flavor!"
+        }]
+    
+    prompt = get_recipe_selection_prompt(pantry_items, cuisine)
+    messages = [{"role": "user", "content": prompt}]
+    
+    response, error = call_openai_with_fallback(messages, temperature=0.7, max_tokens=1000)
+    
+    if response:
+        try:
+            # Try to parse JSON response
+            recipe_data = json.loads(response)
+            
+            if isinstance(recipe_data, dict) and 'recipes' in recipe_data:
+                recipes = recipe_data['recipes']
+                if isinstance(recipes, list) and len(recipes) > 0:
+                    logger.info(f"LLM created {len(recipes)} original recipes based on pantry")
+                    return recipes
+                else:
+                    logger.warning("LLM returned empty recipes list, falling back to simple recipes")
+            else:
+                logger.warning("LLM response missing 'recipes' key, falling back to simple recipes")
+        except json.JSONDecodeError as e:
+            logger.warning(f"LLM returned invalid JSON: {e}, falling back to simple recipes")
+    else:
+        logger.warning(f"LLM recipe creation failed: {error}, falling back to simple recipes")
+    
+    # Fallback to simple recipe suggestions based on available ingredients
+    return create_fallback_recipes(pantry_items, cuisine)
+
+def create_fallback_recipes(pantry_items, cuisine=None):
+    """
+    Create simple fallback recipes when LLM fails
+    """
+    recipes = []
+    
+    # Simple recipe templates based on common ingredients
+    has_eggs, egg_quantity = check_ingredient_availability('eggs', pantry_items)
+    if has_eggs:
+        has_butter, _ = check_ingredient_availability('butter', pantry_items)
+        has_salt, _ = check_ingredient_availability('salt', pantry_items)
+        
+        recipes.append({
+            "name": "Scrambled Eggs",
+            "ingredients": [
+                {"name": "eggs", "has": True, "substitution": None},
+                {"name": "butter", "has": has_butter, "substitution": "oil" if not has_butter else None},
+                {"name": "salt", "has": has_salt, "substitution": None}
+            ],
+            "instructions": "Crack eggs into bowl, whisk. Heat pan with butter/oil, add eggs and scramble until cooked.",
+            "cooking_time": "5 minutes",
+            "tips": "Add some cheese or herbs if you have them for extra flavor!"
+        })
+    
+    has_pasta, _ = check_ingredient_availability('pasta', pantry_items)
+    if has_pasta:
+        has_oil, _ = check_ingredient_availability('olive oil', pantry_items)
+        has_salt, _ = check_ingredient_availability('salt', pantry_items)
+        
+        recipes.append({
+            "name": "Simple Pasta",
+            "ingredients": [
+                {"name": "pasta", "has": True, "substitution": None},
+                {"name": "olive oil", "has": has_oil, "substitution": "butter" if not has_oil else None},
+                {"name": "salt", "has": has_salt, "substitution": None}
+            ],
+            "instructions": "Boil pasta in salted water until al dente. Drain and toss with oil/butter.",
+            "cooking_time": "15 minutes",
+            "tips": "Add some garlic, herbs, or grated cheese if available!"
+        })
+    
+    has_rice, _ = check_ingredient_availability('rice', pantry_items)
+    if has_rice:
+        has_salt, _ = check_ingredient_availability('salt', pantry_items)
+        
+        recipes.append({
+            "name": "Simple Rice",
+            "ingredients": [
+                {"name": "rice", "has": True, "substitution": None},
+                {"name": "water", "has": True, "substitution": None},
+                {"name": "salt", "has": has_salt, "substitution": None}
+            ],
+            "instructions": "Rinse rice, add to pot with water (2:1 ratio). Bring to boil, reduce heat, cover and simmer 20 minutes.",
+            "cooking_time": "25 minutes",
+            "tips": "Add some butter or herbs for extra flavor!"
+        })
+    
+    # If no specific ingredients match, suggest a basic shopping list
+    if not recipes:
+        recipes.append({
+            "name": "Basic Grocery Shopping",
+            "ingredients": [
+                {"name": "pasta", "has": False, "substitution": None},
+                {"name": "eggs", "has": False, "substitution": None},
+                {"name": "bread", "has": False, "substitution": None},
+                {"name": "milk", "has": False, "substitution": None}
+            ],
+            "instructions": "These are basic ingredients to get started. Add them to your cart and I can suggest recipes!",
+            "cooking_time": "Shopping trip",
+            "tips": "Start with these basics and I'll create delicious recipes for you!"
+        })
+    
+    return recipes[:3]  # Return max 3 recipes
+
 @app.route('/chat-with-agent', methods=['POST'])
 def chat_with_agent():
     data = request.json
@@ -306,15 +662,8 @@ def chat_with_agent():
     # Load pantry from file
     state.pantry = load_pantry()
     
-    # Check if we have a pending intent and the message might be a response to our request
+    # Recognize intent
     intent = recognize_intent(message)
-    
-    # Handle pending intent context - if user just provided zip code, continue with pending cart intent
-    if (state.pending_intent == 'add_to_cart' and 
-        intent == 'clarification' and 
-        re.search(r'\b\d{5}\b', message)):
-        intent = 'add_to_cart'
-        logger.info(f"Context override: Detected zip code in clarification, continuing with cart intent")
     
     response = {'type': 'text', 'message': ''}
     
@@ -338,8 +687,12 @@ def chat_with_agent():
                     state.pantry[item] = state.pantry.get(item, 0) + quantity
                 elif action == 'remove':
                     if item in state.pantry:
-                        del state.pantry[item]
-            
+                        if quantity == 0 or state.pantry[item] <= quantity:
+                            # Remove the item completely (spoiled, expired, used up, etc.)
+                            del state.pantry[item]
+                        else:
+                            # Subtract the quantity, but don't go below zero
+                            state.pantry[item] = max(0, state.pantry[item] - quantity)
             save_pantry(state.pantry)
             response['message'] = "I've updated your pantry!"
         else:
@@ -355,18 +708,34 @@ def chat_with_agent():
         elif 'chinese' in message.lower():
             cuisine = 'Chinese'
         
-        recipes = fetch_recipes(cuisine=cuisine)
+        # Use LLM to select recipes based on pantry contents
+        recipes = create_recipes_with_llm(state.pantry, cuisine)
         
         if recipes:
             state.current_meal_plan = recipes
-            shopping_list = create_shopping_list(recipes, state.pantry)
+            
+            # Create shopping list from missing ingredients
+            shopping_list = []
+            for recipe in recipes:
+                for ingredient in recipe['ingredients']:
+                    if not ingredient['has']:
+                        # Check if we already have this item in shopping list
+                        existing_item = next((item for item in shopping_list if item['name'] == ingredient['name']), None)
+                        if existing_item:
+                            existing_item['needed'] += 1
+                        else:
+                            shopping_list.append({
+                                'name': ingredient['name'],
+                                'needed': 1
+                            })
+            
             state.current_shopping_list = shopping_list
             
             response = {
                 'type': 'meal_plan',
                 'meal_plan': recipes,
                 'shopping_list': shopping_list,
-                'message': f"Here's your meal plan with {len(recipes)} recipes!"
+                'message': f"Here's your personalized meal plan with {len(recipes)} recipes based on your pantry!"
             }
         else:
             response['message'] = "Sorry, I couldn't find any recipes. Please try again."
@@ -374,15 +743,14 @@ def chat_with_agent():
     elif intent == 'add_to_cart':
         if not state.user_preferences.get('zip_code'):
             # Check if message contains a zip code
+            import re
             zip_match = re.search(r'\b\d{5}\b', message)
             if zip_match:
                 zip_code = zip_match.group()
                 state.user_preferences['zip_code'] = zip_code
-                state.pending_intent = None  # Clear pending intent
                 response['message'] = f"Got it! I've set your zip code to {zip_code}. Now let me add your items to the Kroger cart..."
                 # Continue with cart logic below
             else:
-                state.pending_intent = 'add_to_cart'  # Set pending intent
                 response['message'] = "I need your zip code to find a nearby Kroger store. What is your zip code?"
                 save_session_state(state)
                 return jsonify(response)
@@ -424,9 +792,6 @@ def chat_with_agent():
                     response['message'] = f"Sorry, I had trouble adding items to your cart: {message}"
             else:
                 response['message'] = f"I couldn't find any of the items in your shopping list at Kroger: {', '.join(not_found_items)}"
-        
-        # Clear pending intent after cart operation completes
-        state.pending_intent = None
     
     else:
         response['message'] = "I'm not sure what you want to do. You can ask me to check your pantry, update your pantry, create a meal plan, or add items to your Kroger cart."

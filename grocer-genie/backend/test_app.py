@@ -8,8 +8,11 @@ from app import (
     app, SessionState, get_session_state, save_session_state,
     load_pantry, save_pantry, recognize_intent, extract_pantry_entities,
     fetch_recipes, create_shopping_list, search_kroger_products,
-    find_kroger_location, add_items_to_kroger_cart
+    find_kroger_location, add_items_to_kroger_cart,
+    normalize_ingredient_name, check_ingredient_availability,
+    create_recipes_with_llm, create_fallback_recipes
 )
+import flask
 
 
 class TestSessionState:
@@ -95,14 +98,14 @@ class TestEntityExtraction:
     def test_extract_pantry_entities_bought(self):
         entities = extract_pantry_entities("I bought 3 apples")
         assert len(entities) == 1
-        assert entities[0]['item'] == 'apples'
+        assert entities[0]['item'] == 'apple'  # LLM normalizes to singular
         assert entities[0]['quantity'] == 3
         assert entities[0]['action'] == 'add'
     
     def test_extract_pantry_entities_added(self):
         entities = extract_pantry_entities("I added 5 oranges")
         assert len(entities) == 1
-        assert entities[0]['item'] == 'oranges'
+        assert entities[0]['item'] == 'orange'  # LLM normalizes to singular
         assert entities[0]['quantity'] == 5
         assert entities[0]['action'] == 'add'
     
@@ -386,6 +389,265 @@ class TestSessionManagement:
                 # Verify session was updated
                 assert 'state' in sess
                 assert sess['state']['pantry'] == sample_session_state.pantry
+
+
+class TestLLMRecipeCreation:
+    def test_normalize_ingredient_name(self):
+        # Test basic normalization
+        assert normalize_ingredient_name('Tomatoes') == 'tomato'
+        assert normalize_ingredient_name('EGGS') == 'egg'
+        assert normalize_ingredient_name('olive oil') == 'olive oil'
+        assert normalize_ingredient_name('garlic cloves') == 'garlic'
+        
+        # Test unknown ingredients
+        assert normalize_ingredient_name('avocado') == 'avocado'
+    
+    def test_check_ingredient_availability(self):
+        pantry = {'eggs': 3, 'tomatoes': 2, 'olive oil': 1}
+        
+        # Test exact matches
+        has_eggs, quantity = check_ingredient_availability('eggs', pantry)
+        assert has_eggs is True
+        assert quantity == 3
+        
+        # Test normalized matches
+        has_tomatoes, quantity = check_ingredient_availability('tomatoes', pantry)
+        assert has_tomatoes is True
+        assert quantity == 2
+        
+        # Test missing ingredients
+        has_milk, quantity = check_ingredient_availability('milk', pantry)
+        assert has_milk is False
+        assert quantity == 0
+    
+    @patch('app.call_openai_with_fallback')
+    def test_create_recipes_with_llm_success(self, mock_openai):
+        # Mock successful LLM response
+        mock_response = {
+            "recipes": [
+                {
+                    "name": "Creative Scrambled Eggs",
+                    "ingredients": [
+                        {"name": "eggs", "has": True, "substitution": None},
+                        {"name": "butter", "has": False, "substitution": "oil"}
+                    ],
+                    "instructions": "Crack eggs and scramble with creative techniques",
+                    "cooking_time": "5 minutes",
+                    "tips": "Add herbs for extra flavor!"
+                }
+            ]
+        }
+        mock_openai.return_value = (json.dumps(mock_response), None)
+        
+        pantry = {'eggs': 3}
+        recipes = create_recipes_with_llm(pantry)
+        
+        assert len(recipes) == 1
+        assert recipes[0]['name'] == 'Creative Scrambled Eggs'
+        assert recipes[0]['ingredients'][0]['has'] is True
+        assert recipes[0]['ingredients'][1]['has'] is False
+        assert 'tips' in recipes[0]
+    
+    @patch('app.call_openai_with_fallback')
+    def test_create_recipes_with_llm_fallback(self, mock_openai):
+        # Mock LLM failure
+        mock_openai.return_value = (None, "API error")
+        
+        pantry = {'eggs': 3}
+        recipes = create_recipes_with_llm(pantry)
+        
+        # Should fall back to simple recipes
+        assert len(recipes) > 0
+        # Should include scrambled eggs since we have eggs
+        egg_recipe = next((r for r in recipes if 'egg' in r['name'].lower()), None)
+        assert egg_recipe is not None
+        assert 'tips' in egg_recipe
+    
+    def test_create_recipes_with_llm_empty_pantry(self):
+        recipes = create_recipes_with_llm({})
+        
+        # Should return simple pasta recipe for empty pantry
+        assert len(recipes) == 1
+        assert 'pasta' in recipes[0]['name'].lower()
+        assert 'tips' in recipes[0]
+    
+    def test_create_fallback_recipes_with_eggs(self):
+        pantry = {'eggs': 3, 'butter': 1}
+        recipes = create_fallback_recipes(pantry)
+        
+        # Should include scrambled eggs
+        egg_recipe = next((r for r in recipes if 'egg' in r['name'].lower()), None)
+        assert egg_recipe is not None
+        assert egg_recipe['ingredients'][0]['name'] == 'eggs'
+        assert egg_recipe['ingredients'][0]['has'] is True
+        assert egg_recipe['ingredients'][1]['name'] == 'butter'
+        assert egg_recipe['ingredients'][1]['has'] is True
+        assert 'tips' in egg_recipe
+    
+    def test_create_fallback_recipes_with_pasta(self):
+        pantry = {'pasta': 1, 'olive oil': 1}
+        recipes = create_fallback_recipes(pantry)
+        
+        # Should include pasta recipe
+        pasta_recipe = next((r for r in recipes if 'pasta' in r['name'].lower()), None)
+        assert pasta_recipe is not None
+        assert pasta_recipe['ingredients'][0]['name'] == 'pasta'
+        assert pasta_recipe['ingredients'][0]['has'] is True
+        assert 'tips' in pasta_recipe
+    
+    def test_create_fallback_recipes_no_ingredients(self):
+        recipes = create_fallback_recipes({})
+        
+        # Should suggest basic shopping list
+        assert len(recipes) == 1
+        assert 'shopping' in recipes[0]['name'].lower()
+        assert 'tips' in recipes[0]
+
+
+class TestUpdatedMealPlanning:
+    @patch('app.create_recipes_with_llm')
+    def test_meal_planning_uses_llm(self, mock_select, client):
+        # Mock LLM recipe selection
+        mock_recipes = [
+            {
+                "name": "Simple Pasta",
+                "ingredients": [
+                    {"name": "pasta", "has": True, "substitution": None},
+                    {"name": "olive oil", "has": False, "substitution": None}
+                ],
+                "instructions": "Boil pasta",
+                "cooking_time": "15 minutes"
+            }
+        ]
+        mock_select.return_value = mock_recipes
+        
+        # Test the API endpoint
+        response = client.post('/chat-with-agent', 
+                             json={'message': 'I want to cook something'})
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['type'] == 'meal_plan'
+        assert len(data['meal_plan']) == 1
+        assert data['meal_plan'][0]['name'] == 'Simple Pasta'
+        
+        # Check shopping list creation
+        assert len(data['shopping_list']) == 1
+        assert data['shopping_list'][0]['name'] == 'olive oil'
+        assert data['shopping_list'][0]['needed'] == 1
+    
+    @patch('app.create_recipes_with_llm')
+    def test_meal_planning_with_cuisine_preference(self, mock_select, client):
+        mock_recipes = [
+            {
+                "name": "Italian Pasta",
+                "ingredients": [
+                    {"name": "pasta", "has": True, "substitution": None},
+                    {"name": "tomatoes", "has": False, "substitution": None}
+                ],
+                "instructions": "Make Italian pasta",
+                "cooking_time": "20 minutes"
+            }
+        ]
+        mock_select.return_value = mock_recipes
+        
+        # Test with Italian cuisine preference
+        response = client.post('/chat-with-agent', 
+                             json={'message': 'I want to cook Italian food'})
+        
+        assert response.status_code == 200
+        # Verify that create_recipes_with_llm was called with Italian cuisine
+        mock_select.assert_called_once()
+        args, kwargs = mock_select.call_args
+        assert kwargs.get('cuisine') == 'Italian'
+
+
+class TestPantryUpdateLLM:
+    def dynamic_load_pantry(self):
+        # Return a copy of the current session pantry
+        return flask.session['state']['pantry'].copy() if 'state' in flask.session else {}
+
+    @patch('app.save_pantry')
+    @patch('app.extract_pantry_entities')
+    def test_remove_spoiled_item(self, mock_extract, mock_save, client):
+        with patch('app.load_pantry', side_effect=self.dynamic_load_pantry):
+            mock_extract.return_value = [
+                {"item": "egg", "quantity": 0, "action": "remove"}
+            ]
+            with client.session_transaction() as sess:
+                sess['state'] = SessionState().to_dict()
+                sess['state']['pantry'] = {"egg": 6, "milk": 1}
+            response = client.post('/chat-with-agent', json={"message": "my eggs spoiled"})
+            assert response.status_code == 200
+            with client.session_transaction() as sess:
+                assert "egg" not in sess['state']['pantry']
+                assert "milk" in sess['state']['pantry']
+            assert "updated your pantry" in response.get_json()['message'].lower()
+
+    @patch('app.save_pantry')
+    @patch('app.extract_pantry_entities')
+    def test_remove_expired_and_ran_out(self, mock_extract, mock_save, client):
+        with patch('app.load_pantry', side_effect=self.dynamic_load_pantry):
+            mock_extract.return_value = [
+                {"item": "bread", "quantity": 0, "action": "remove"},
+                {"item": "cheese", "quantity": 0, "action": "remove"}
+            ]
+            with client.session_transaction() as sess:
+                sess['state'] = SessionState().to_dict()
+                sess['state']['pantry'] = {"bread": 2, "cheese": 1, "milk": 1}
+            response = client.post('/chat-with-agent', json={"message": "the bread expired and I ran out of cheese"})
+            assert response.status_code == 200
+            with client.session_transaction() as sess:
+                assert "bread" not in sess['state']['pantry']
+                assert "cheese" not in sess['state']['pantry']
+                assert "milk" in sess['state']['pantry']
+
+    @patch('app.save_pantry')
+    @patch('app.extract_pantry_entities')
+    def test_remove_partial_quantity(self, mock_extract, mock_save, client):
+        with patch('app.load_pantry', side_effect=self.dynamic_load_pantry):
+            mock_extract.return_value = [
+                {"item": "egg", "quantity": 2, "action": "remove"}
+            ]
+            with client.session_transaction() as sess:
+                sess['state'] = SessionState().to_dict()
+                sess['state']['pantry'] = {"egg": 6}
+            response = client.post('/chat-with-agent', json={"message": "I used up 2 eggs"})
+            assert response.status_code == 200
+            with client.session_transaction() as sess:
+                assert sess['state']['pantry']['egg'] == 4
+
+    @patch('app.save_pantry')
+    @patch('app.extract_pantry_entities')
+    def test_remove_more_than_exists(self, mock_extract, mock_save, client):
+        with patch('app.load_pantry', side_effect=self.dynamic_load_pantry):
+            mock_extract.return_value = [
+                {"item": "egg", "quantity": 10, "action": "remove"}
+            ]
+            with client.session_transaction() as sess:
+                sess['state'] = SessionState().to_dict()
+                sess['state']['pantry'] = {"egg": 6}
+            response = client.post('/chat-with-agent', json={"message": "I threw away 10 eggs"})
+            assert response.status_code == 200
+            with client.session_transaction() as sess:
+                assert "egg" not in sess['state']['pantry']
+
+    @patch('app.save_pantry')
+    @patch('app.extract_pantry_entities')
+    def test_add_and_remove_mixed(self, mock_extract, mock_save, client):
+        with patch('app.load_pantry', side_effect=self.dynamic_load_pantry):
+            mock_extract.return_value = [
+                {"item": "tomato", "quantity": 2, "action": "add"},
+                {"item": "onion", "quantity": 0, "action": "remove"}
+            ]
+            with client.session_transaction() as sess:
+                sess['state'] = SessionState().to_dict()
+                sess['state']['pantry'] = {"onion": 1}
+            response = client.post('/chat-with-agent', json={"message": "I added 2 tomatoes and used up the onions"})
+            assert response.status_code == 200
+            with client.session_transaction() as sess:
+                assert "onion" not in sess['state']['pantry']
+                assert sess['state']['pantry']['tomato'] == 2
 
 
 if __name__ == '__main__':
