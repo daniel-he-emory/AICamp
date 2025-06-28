@@ -84,7 +84,7 @@ This section breaks down each feature into its core function, step-by-step devel
 
 * **Description:** After the shopping list is generated and displayed in the chat, the user can command GrocerGenie to add the items to their Kroger cart.  
 * **Development Steps:**  
-  1. **Setup Kroger MCP Server:** This remains the first priority.  
+  1. **Setup Kroger MCP Server:** This remains the first priority. You can find the documentation for the Kroger MCP Server under external_tools_docs/ in this repo. Use it to make sure your calls to the server are correct.  
   2. **User Command:** The user gives a command like, "Okay, add those to my Kroger cart."  
   3. **Agentic Workflow:** The agent identifies the "add to cart" intent and executes the workflow:  
      * Use the search\_products tool for each item on the list.  
