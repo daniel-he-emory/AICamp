@@ -1,243 +1,305 @@
-💡 **Project Ideas Brainstorming**
+# 🚀 Hackathon Brainstorming & Task Assignment
 
-**Idea 1: SmartShopper AI**
+## 📋 Team Information
+- **Team Name**: SmartBites
+- **Event**: [Hackathon Name]
+- **Date**: [Event Date]
+- **Duration**: [Event Duration]
 
-**Description:**
-- **Brief description:** An AI-powered agent assisting users in finding the best deals, comparing prices, and making informed purchasing decisions.
-- **Problem solved:** Saves time and money by automating price comparison and deal discovery.
-- **Target audience:** Online shoppers, budget-conscious consumers.
+---
 
-**Tech Stack:**
-- **Frontend:** React
-- **Backend:** Node.js, Python
-- **Database:** PostgreSQL
-- **APIs/Services:** Amazon API, Walmart API, Google Shopping API
+## 💡 Project Ideas Brainstorming
 
-**Features:**
-- Real-time price comparison
-- Personalized product recommendations
-- Alerts for deals and price drops
+### Idea 1: NutriMCP – Personalized Meal Planner with Auto-Grocery Purchasing
 
-**Pros:**
-- Convenience and efficiency
-- Saves money through optimized recommendations
+**Description**:  
+A web app that designs personalized meal plans based on user demographics, dietary needs, and medical conditions (e.g., diabetes, hypertension), and automatically purchases the necessary groceries via grocery store MCP (Multi-Channel Platform) APIs.
 
-**Cons:**
-- API rate limits
-- Complexity of real-time data synchronization
+**Problem Solved**:  
+Helps users eat healthier while saving time by automating both planning and shopping. Solves friction between health advice and execution.
 
-**Idea 2: GroceryPal**
+**Target Audience**:  
+- Health-conscious individuals  
+- People with chronic conditions (e.g., diabetes, allergies)  
+- Busy professionals  
+- Elderly users or caregivers  
 
-**Description:**
-- **Brief description:** A shopping assistant specifically for groceries, managing shopping lists, suggesting alternatives, and optimizing purchases based on health goals.
-- **Problem solved:** Simplifies grocery shopping and promotes healthier lifestyle choices.
-- **Target audience:** Health-conscious individuals, families.
+**Tech Stack**:  
+- Frontend: React + Tailwind CSS  
+- Backend: FastAPI (Python)  
+- Database: PostgreSQL + Redis  
+- APIs/Services: OpenAI, USDA FoodData Central, Instacart/Walmart MCP, Stripe  
 
-**Tech Stack:**
-- **Frontend:** Vue.js
-- **Backend:** Flask
-- **Database:** MongoDB
-- **APIs/Services:** Instacart API, Nutritionix API
+**Features**:  
+- [ ] Personalized meal plan generator (AI-based)  
+- [ ] Nutrition + allergen checker  
+- [ ] One-click grocery cart integration (via MCP)  
 
-**Features:**
-- Interactive grocery lists
-- Nutritional analysis of shopping cart
-- Smart substitution suggestions
+**Pros**:  
+- Automates entire “plan → shop” journey  
+- Addresses health and accessibility use cases  
 
-**Pros:**
-- Encourages healthier eating
-- User-friendly management of grocery shopping
+**Cons**:  
+- Need to integrate several 3rd party APIs  
+- Need dietary logic that is medically accurate  
 
-**Cons:**
-- Dependency on external nutritional databases
-- User habit adaptation
+---
 
-**Idea 3: FashionFinder AI**
+### Idea 2: FitFuel – Meal Planning for Fitness Enthusiasts
 
-**Description:**
-- **Brief description:** AI assistant for fashion shopping, providing personalized fashion recommendations based on user style preferences and current trends.
-- **Problem solved:** Helps users quickly discover fashionable items tailored to their tastes.
-- **Target audience:** Fashion enthusiasts, busy professionals.
+**Description**:  
+Meal planner that generates weekly meal prep recipes aligned to fitness goals (e.g., muscle gain, fat loss), including calorie and macro tracking.
 
-**Tech Stack:**
-- **Frontend:** Angular
-- **Backend:** Django
-- **Database:** MySQL
-- **APIs/Services:** Pinterest API, ASOS API, Zalando API
+**Problem Solved**:  
+Removes guesswork from meal planning for gym-goers.
 
-**Features:**
-- Personalized style recommendations
-- Trend tracking and notifications
-- Virtual try-on feature
+**Target Audience**:  
+Fitness enthusiasts, athletes, personal trainers  
 
-**Pros:**
-- Enhanced personalized shopping experience
-- Keeps users updated with latest fashion trends
+**Tech Stack**:  
+- Frontend: Vue.js  
+- Backend: Node.js + Express  
+- Database: MongoDB  
+- APIs/Services: FitnessPal API, USDA API  
 
-**Cons:**
-- Complex user preference modeling
-- Integration with various retailer APIs
+**Features**:  
+- [ ] Goal-based recipe generation  
+- [ ] Macro calculator  
+- [ ] Grocery list export  
 
-🎯 **Final Project Decision**
+**Pros**:  
+- Narrow and focused  
+- Fast implementation  
 
-**Selected Project:** SmartShopper AI
+**Cons**:  
+- Limited market outside fitness  
+- Doesn’t integrate shopping directly  
 
-**Why this project?:**
-- Wide appeal to general consumers
-- Clear and tangible user benefits (time and cost-saving)
-- Feasible implementation with existing APIs and technology
+---
 
-**MVP Features:**
-- Real-time price comparison
-- Basic product recommendation engine
-- Deal alerts and notifications
+### Idea 3: CareMeal – Senior Meal Companion
 
-**Stretch Goals:**
-- Advanced user analytics dashboard
-- Integration with social media sharing
+**Description**:  
+Tool for caregivers of elderly patients to plan safe, tasty, easy-to-chew meals that comply with medication and health conditions.
 
-👥 **Team Roles & Responsibilities**
+**Problem Solved**:  
+Improves caregiving by reducing food-related health incidents  
 
-**Team Member 1: Alex**
-- **Role:** Frontend Developer
-- **Skills:** React, JavaScript, HTML/CSS
-- **Responsibilities:**
-  - Design frontend interface
-  - Implement product display components
-  - Connect frontend to backend APIs
+**Target Audience**:  
+Elderly people, caregivers, family  
 
-**Team Member 2: Jamie**
-- **Role:** Backend Developer
-- **Skills:** Node.js, Python, API integration
-- **Responsibilities:**
-  - Develop backend logic
-  - API integrations with Amazon, Walmart
-  - Build recommendation algorithm
+**Tech Stack**:  
+- Frontend: Svelte  
+- Backend: Flask  
+- Database: Firebase  
+- APIs/Services: Medications + diet restriction lookup  
 
-**Team Member 3: Taylor**
-- **Role:** UI/UX Designer
-- **Skills:** Figma, Adobe XD, UX research
-- **Responsibilities:**
-  - Create intuitive UI designs
-  - Conduct user testing
-  - Enhance overall user experience
+**Features**:  
+- [ ] Elder-friendly recipe generator  
+- [ ] Warning system for ingredient-med conflicts  
+- [ ] Caregiver dashboard  
 
-**Team Member 4: Morgan**
-- **Role:** Project Manager
-- **Skills:** Agile methodology, communication, planning
-- **Responsibilities:**
-  - Manage project timeline and deliverables
-  - Conduct daily stand-ups
-  - Oversee documentation and reporting
+**Pros**:  
+- Impactful socially  
+- Targets underserved market  
 
-📅 **Project Timeline**
+**Cons**:  
+- Requires domain expertise  
+- Lower generalizability  
 
-**Phase 1: Planning & Setup (Hour 0-2)**
-- Finalize project idea
-- Set up development environment
-- Create project repository
-- Set up basic project structure
-- Assign initial tasks
+---
 
-**Phase 2: Core Development (Hour 2-8)**
-- Backend API development
-- Frontend basic structure
-- Database setup
-- Core functionality implementation
+## 🎯 Final Project Decision
 
-**Phase 3: Features & Polish (Hour 8-12)**
-- Additional features
-- UI/UX improvements
-- Bug fixes
-- Testing
+**Selected Project**: NutriMCP – Personalized Meal Planner with Auto-Grocery Purchasing  
 
-**Phase 4: Final Touches (Hour 12-14)**
-- Documentation
-- Demo preparation
-- Final testing
-- Presentation preparation
+**Why this project?**:  
+- Combines personalization + automation + e-commerce  
+- Broad consumer use case  
+- Potential for real-world adoption  
 
-🛠️ **Technical Decisions**
+**MVP Features**:  
+- [ ] AI-powered meal plan from user profile  
+- [ ] Ingredient extraction and grocery list generation  
+- [ ] MCP API integration to place grocery order  
 
-**Architecture:** Microservices-based
+**Stretch Goals** (if time permits):  
+- [ ] Dynamic substitution (if item is out of stock)  
+- [ ] Real-time nutrition tracking with wearable integration  
 
-- **Frontend Framework:** React
-- **Backend Framework:** Node.js, Python (Flask)
-- **Database:** PostgreSQL
-- **Deployment:** AWS EC2
+---
 
-**APIs & Services:**
-- Amazon API: Product data and pricing
-- Walmart API: Competitive pricing
-- Google Shopping API: Broad marketplace data
+## 👥 Team Roles & Responsibilities
 
-**Development Tools:**
-- **Version Control:** Git
-- **IDE/Editor:** Visual Studio Code
-- **Communication:** Slack
-- **Project Management:** Jira
+### Team Member 1: Alex  
+**Role**: Backend Developer  
+**Skills**: Python, FastAPI, API integration  
+**Responsibilities**:  
+- [ ] Build meal plan API  
+- [ ] Integrate grocery MCP  
+- [ ] User profile management  
 
-📝 **Notes & Ideas**
+### Team Member 2: Jamie  
+**Role**: Frontend Developer  
+**Skills**: React, Tailwind, UX design  
+**Responsibilities**:  
+- [ ] Build user profile form  
+- [ ] Display meal plans and grocery carts  
+- [ ] Link to checkout  
 
-**Random Ideas:**
-- Gamification elements (points, rewards)
-- Integration with budgeting apps
+### Team Member 3: Sam  
+**Role**: Data & AI Engineer  
+**Skills**: GPT API, NLP, food dataset parsing  
+**Responsibilities**:  
+- [ ] Meal generation prompt tuning  
+- [ ] Nutrition fact extraction  
+- [ ] Food allergen/diet checks  
 
-**Resources & References:**
-- API documentation
-- Competitor analysis (Honey, CamelCamelCamel)
+### Team Member 4: Casey  
+**Role**: Project Manager & QA  
+**Skills**: Product planning, testing, coordination  
+**Responsibilities**:  
+- [ ] Task assignment  
+- [ ] Testing flows  
+- [ ] Presentation & demo  
 
-**Challenges & Solutions:**
+---
 
-- **Challenge 1:** Handling API rate limits
-  - **Solution:** Implement caching and batching API requests
+## 📅 Project Timeline
 
-- **Challenge 2:** Ensuring real-time data accuracy
-  - **Solution:** Frequent polling combined with push notifications
+### Phase 1: Planning & Setup (Hour 0-2)  
+- [x] Finalize project idea  
+- [x] Set up development environment  
+- [x] Create project repository  
+- [x] Set up basic project structure  
+- [x] Assign initial tasks  
 
-✅ **Daily Check-ins**
+### Phase 2: Core Development (Hour 2-8)  
+- [ ] Backend: meal plan API  
+- [ ] Frontend: user profile + result page  
+- [ ] Database setup for users and preferences  
+- [ ] Grocery API endpoint integration  
 
-**Day 1 Progress:**
-- **Accomplishments:** Project setup, basic backend structure
-- **Blockers:** None
-- **Next steps:** Frontend development, API integration
+### Phase 3: Features & Polish (Hour 8-12)  
+- [ ] UI polish and styling  
+- [ ] Add dietary warnings  
+- [ ] Testing flows  
 
-**Day 2 Progress:**
-- **Accomplishments:** Frontend component development, initial API integration
-- **Blockers:** API rate limits encountered
-- **Next steps:** Implement caching solutions, refine UI
+### Phase 4: Final Touches (Hour 12-14)  
+- [ ] README and walkthrough  
+- [ ] Live demo prep  
+- [ ] Team pitch practice  
 
-🎉 **Final Submission Checklist**
+---
 
-**Code:**
-- All code committed and pushed
-- Public repository
-- Complete README.md
-- Documented code
+## 🛠️ Technical Decisions
 
-**Demo:**
-- Demo prepared
-- All features functional
-- Presentation ready
+### Architecture  
+- **Frontend Framework**: React  
+- **Backend Framework**: FastAPI  
+- **Database**: PostgreSQL  
+- **Deployment**: Render / Vercel  
 
-**Documentation:**
-- Clear project description
-- Installation instructions
-- API documentation
-- Screenshots and video demo
+### APIs & Services  
+- [ ] OpenAI API: meal planning  
+- [ ] USDA FoodData API: nutrition  
+- [ ] Instacart / Walmart MCP: grocery purchasing  
 
-💬 **Team Communication**
+### Development Tools  
+- **Version Control**: Git + GitHub  
+- **IDE/Editor**: VS Code  
+- **Communication**: Discord  
+- **Project Management**: Trello  
 
-**Meeting Schedule:**
-- Daily Standup: 10 AM
-- Progress Review: 3 PM
-- Final Prep: 5 PM (Day before demo)
+---
 
-**Communication Channels:**
-- Slack: #smartshopper-ai
-- GitHub: github.com/smartshopper-ai
-- Other: Jira
+## 📝 Notes & Ideas
 
-**Last Updated:** June 28, 2025
-**Next Review:** July 5, 2025
+### Random Ideas  
+- Idea 1: Add wearable integration for calorie intake  
+- Idea 2: Budget-friendly grocery constraints  
+- Idea 3: Family planning mode  
 
+### Resources & References  
+- [USDA API](https://fdc.nal.usda.gov/api-key-signup.html)  
+- [Instacart Developer API](https://www.instacart.com/company/developers)  
+- [OpenAI GPT](https://platform.openai.com/)  
+
+### Challenges & Solutions  
+**Challenge 1**: Accurate mapping from meals to grocery items  
+- **Solution**: Use NLP and tagging library (e.g., Spoonacular)  
+
+**Challenge 2**: Multiple diet restrictions  
+- **Solution**: Create a rule engine to filter recipes  
+
+---
+
+## ✅ Daily Check-ins
+
+### Day 1 Progress  
+**What was accomplished?**:  
+- Backend scaffold  
+- Initial meal planner working  
+- MCP API key request sent  
+
+**What are the blockers?**:  
+- Grocery item standardization  
+- Limited free credits on API  
+
+**Next steps**:  
+- Connect frontend to backend  
+- Build shopping cart flow  
+
+### Day 2 Progress  
+**What was accomplished?**:  
+- Full meal → grocery flow completed  
+- UI design near final  
+
+**What are the blockers?**:  
+- Deployment issues  
+- Missing test users  
+
+**Next steps**:  
+- Run user test  
+- Polish demo  
+
+---
+
+## 🎉 Final Submission Checklist
+
+### Code  
+- [x] All code is committed and pushed  
+- [x] Repository is public/accessible  
+- [x] README.md is complete  
+- [ ] Code is well-documented  
+
+### Demo  
+- [x] Demo is prepared  
+- [x] All features work as expected  
+- [ ] Presentation slides are ready  
+- [ ] Team members know their parts  
+
+### Documentation  
+- [x] Project description is clear  
+- [ ] Installation instructions are provided  
+- [ ] API documentation (if applicable)  
+- [x] Screenshots/videos of the application  
+
+---
+
+## 💬 Team Communication
+
+### Meeting Schedule  
+- **Daily Standup**: 9:00 AM  
+- **Progress Review**: 2:00 PM  
+- **Final Prep**: 6:00 PM  
+
+### Communication Channels  
+- **Slack/Discord**: #smartbites-team  
+- **GitHub**: https://github.com/smartbites/hackathon2025  
+- **Other**: Notion  
+
+---
+
+*Last Updated: 2025-06-28*  
+*Next Review: 2025-06-29*
