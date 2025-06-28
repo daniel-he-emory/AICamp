@@ -1,125 +1,139 @@
-GrocerGenie: 5-Hour AI MCP Hackathon Plan
-The goal is to build a functional Minimum Viable Product (MVP) that demonstrates the core agentic loop: taking a user's meal preference, checking a simulated pantry, generating a shopping list, and using the Kroger MCP Server to add those items to a real shopping cart.
+Claude Prompt: GrocerGenie AI Shopping Assistant
+You are an expert AI software developer specializing in rapid prototyping with Python and Streamlit. Your task is to build a functional MVP for a 5-hour hackathon project called "GrocerGenie".
 
-1. The Core Concept (Hackathon MVP)
-A user specifies a meal they want to cook. The app checks a hardcoded list of ingredients for that meal against a hardcoded pantry list. It generates a shopping list of what's missing and then uses the Kroger MCP agent to find those items and add them to the user's cart.
+The goal is to create a single, self-contained Python script that accomplishes the entire user flow. The script will use hardcoded data for recipes and pantry inventory to simulate the core logic, and it will interact with a locally running "Kroger MCP Server" to handle grocery-specific tasks.
 
-Key to Winning: Don't try to build the full "learning" agent. Focus entirely on a single, successful end-to-end demonstration. The "wow" factor comes from seeing a meal plan turn into a populated Kroger cart automatically.
+Project Overview
+GrocerGenie is an AI assistant that helps with meal planning and shopping. For this MVP, the user will select a meal they want to cook. The application will determine which ingredients are missing from their pantry, find those ingredients at Kroger using an agentic tool, and automatically add them to the user's shopping cart.
 
-2. Recommended Tech Stack (Speed is Everything)
-Primary Tool: Kroger MCP Server. This is the star of the show. Your project's success is directly tied to using its tools. The GitHub repository CupOfOwls/kroger-mcp is your primary resource.
+Core Requirements & Assumptions
+Single File Output: Your entire output must be a single Python script named app.py.
 
-Agent Logic / Backend: Python. It's the lingua franca of AI and what you'll use to script the interactions with the MCP server.
+Dependencies: The script will require streamlit and requests. You must include the necessary import statements.
 
-User Interface (UI): Streamlit. Do not attempt to build a traditional web frontend with HTML/JS/Flask. Streamlit allows you to create a simple, effective UI with just a few lines of Python. It's the fastest way to build a demoable interface for a data-driven script.
+Kroger MCP Server: You must assume a server is already running locally at http://127.0.0.1:8000. Your Python script will act as a client, making HTTP POST requests to this server to use its tools.
 
-Data Storage (Pantry & Recipes): Hardcoded Python Dictionaries. Do not use .json files or a database. For a 5-hour hackathon, defining your data directly in your Python script (pantry = {...}, recipes = {...}) is the fastest and most reliable method.
+Authentication: Assume the user has already authenticated with Kroger through the MCP server's browser flow. Your script does not need to handle the authentication process itself.
 
-3. The 5-Hour Development Roadmap
-This aggressive schedule prioritizes the biggest risks first.
+Component Development Plan
+Please generate the code for app.py by implementing the following components in order.
 
-Hour 1: Setup & Authentication (The Foundation)
-Goal: Get the Kroger MCP Server running locally and successfully authenticate. This is the most critical and potentially time-consuming step.
+Component 1: Hardcoded Data Structures
+At the top of the app.py script, define the following Python dictionaries to act as our simulated database.
 
-Tasks:
-
-Register on Kroger Developer Portal: Immediately create an account and register an application. You need your CLIENT_ID and CLIENT_SECRET.
-
-Clone & Configure: Clone the CupOfOwls/kroger-mcp repository. Create a .env file and populate it with your Kroger API credentials.
-
-Run the Server: Follow the README instructions to install dependencies (uv is recommended) and launch the server.
-
-Authenticate: The first time you try to use a tool that requires user data (like finding stores), the server will prompt you to authenticate via a web browser. Complete this flow. You cannot proceed without this.
-
-Test a Tool: Use a simple command-line tool like curl or a simple Python script to call a basic tool from your running MCP server, like search_locations. If you get a valid response, you are ready for the next step.
-
-Hour 2: The Core Logic (Pantry & Planner)
-Goal: Write the "brain" of your app in a single Python script. This part does not involve the MCP server yet.
-
-Tasks (main.py):
-
-Hardcode the Pantry: At the top of your script, define your simulated pantry.
+Simulated Pantry: Represents the user's current inventory. 1 means the item is in stock, 0 means it is not.
 
 Python
 
-pantry = {
-    "salt": 1, "pepper": 1, "olive oil": 1,
-    "onion": 0, "garlic": 0, "chicken breast": 0
+PANTRY_INVENTORY = {
+    "salt": 1,
+    "pepper": 1,
+    "olive oil": 1,
+    "onion": 0,
+    "garlic": 0,
+    "chicken breast": 0,
+    "pasta": 0,
+    "canned tomatoes": 1,
+    "lemon": 0
 }
-Hardcode Recipes: Define a few simple recipes. The ingredients should be simple, lowercase strings.
+Recipe Book: A dictionary of available meal plans. Ingredients should be lowercase to match the pantry keys.
 
 Python
 
-recipes = {
-    "lemon chicken": {
-        "name": "Lemon Herb Chicken",
-        "ingredients": ["chicken breast", "olive oil", "garlic", "lemon"]
+RECIPES = {
+    "lemon_chicken": {
+        "display_name": "Lemon Herb Chicken",
+        "ingredients": ["chicken breast", "olive oil", "garlic", "lemon", "salt", "pepper"]
     },
-    "simple pasta": {
-        "name": "Garlic Tomato Pasta",
-        "ingredients": ["pasta", "canned tomatoes", "garlic", "onion"]
+    "simple_pasta": {
+        "display_name": "Garlic Tomato Pasta",
+        "ingredients": ["pasta", "canned tomatoes", "garlic", "onion", "olive oil"]
     }
 }
-Write the Comparison Logic: Create a Python function generate_shopping_list(meal_choice) that takes a key (e.g., "lemon chicken"), finds the recipe, and compares its ingredients to the pantry. It should return a list of missing items.
+Component 2: Core Logic Function
+Create a Python function that determines the necessary shopping list.
 
-Example: generate_shopping_list("lemon chicken") should return ['chicken breast', 'garlic', 'lemon'].
+Function Signature: generate_shopping_list(meal_key: str) -> list[str]
 
-Hour 3: The Agentic Workflow (Connecting to Kroger)
-Goal: Connect your core logic to the Kroger MCP server to find products.
+Functionality:
 
-Tasks (Continue in main.py):
+It accepts a meal_key (e.g., "lemon_chicken").
 
-Integrate requests: Use Python's requests library to make calls to your locally running MCP server (e.g., http://127.0.0.1:8000/tools/search_products).
+It retrieves the list of ingredients from the RECIPES dictionary.
 
-Set Preferred Location: Your first agentic action must be to set a store. Hardcode a zip code and call the set_preferred_location tool.
+It iterates through the ingredients and checks if they are in stock in the PANTRY_INVENTORY dictionary (i.e., the value is greater than 0).
 
-Build the find_products function: Create a function that takes your generated shopping list. For each item in the list:
+It returns a list containing only the names of the missing ingredients.
 
-It should call the search_products tool via an HTTP request.
+Component 3: Agentic Tool Interaction Functions
+Create Python functions that make requests calls to the Kroger MCP Server endpoints. These functions will orchestrate the agentic workflow.
 
-It should parse the JSON response and grab the productId and name of the first result for simplicity.
+Function 1: Find Products
 
-It should return a list of dictionaries, where each contains the productId and a quantity (default to 1).
+Signature: find_kroger_products(shopping_list: list[str]) -> list[dict]
 
-Hour 4: Closing the Loop (Add to Cart)
-Goal: Complete the end-to-end flow by adding the found products to the user's cart.
+Functionality:
 
-Tasks (Finalize main.py):
+It accepts the shopping_list of missing ingredients.
 
-Call bulk_add_to_cart: Take the list of product dictionaries from the previous step.
+It iterates through each item_name in the list.
 
-Make one final HTTP request to the bulk_add_to_cart tool on your MCP server, passing the list of products as the payload.
+For each item, it makes a POST request to http://127.0.0.1:8000/tools/search_products.
 
-Add print statements to log the progress: "Generating shopping list...", "Found product: [Name]", "Adding items to cart...", "Successfully added items to your Kroger cart!"
+The JSON payload for the request must be: {"term": item_name}.
 
-Hour 5: UI & Demo Prep
-Goal: Wrap your script in a simple Streamlit UI and prepare your presentation.
+From the response, it extracts the productId of the first product in the results.
 
-Tasks:
+It builds a list of dictionaries, where each dictionary has two keys: productId and quantity (hardcode quantity to 1).
 
-Install Streamlit: pip install streamlit
+It returns the final list of product dictionaries. Handle potential errors if a product is not found.
 
-Convert main.py to a Streamlit App:
+Function 2: Add to Cart
 
-Add import streamlit as st.
+Signature: add_items_to_kroger_cart(product_list: list[dict]) -> bool
 
-Use st.title() for your app's name.
+Functionality:
 
-Use st.selectbox() or st.text_input() to get the user's meal choice.
+It accepts the product_list generated by the find_kroger_products function.
 
-Wrap your main logic inside a if st.button('Generate Plan & Add to Cart'): block.
+It makes a single POST request to http://127.0.0.1:8000/tools/bulk_add_to_cart.
 
-Use st.write() and st.spinner() to display the progress messages you wrote in the previous step.
+The JSON payload for the request must be: {"items": product_list}.
 
-Display the final shopping list to the user with st.success().
+It should return True if the request was successful and False otherwise.
 
-Run the App: streamlit run main.py.
+Component 4: Streamlit User Interface
+Using the Streamlit library, build the user-facing part of the application. This should be the main executable part of the script.
 
-Prepare Demo Script: Rehearse a 2-minute walkthrough. Emphasize how the agent uses the MCP tools (search_products, bulk_add_to_cart) to bridge the gap between a high-level plan ("I want chicken") and a real-world action (items in a cart).
+Set Page Title: Use st.title('GrocerGenie: AI Shopping Assistant').
 
-Final Advice for the Hackathon
-Work in Parallel: Have one person focus on getting the Kroger MCP Server set up and authenticated (Hour 1) while another person writes the core pantry/recipe logic in Python (Hour 2).
+Meal Selection: Create a dropdown menu for the user to select a meal. The options should be the display names from the RECIPES dictionary.
 
-Read the MCP README: The CupOfOwls/kroger-mcp GitHub repository README is your most important document. It details the available tools and how to use them. It even has built-in prompts and workflows you can leverage.
+Python
 
-Don't Overcomplicate: A single, working end-to-end demo is infinitely better than a complex, half-finished one. Hardcode everything you can (pantry, recipes, location) to save time and reduce points of failure. Good luck!
+# Example:
+recipe_options = {key: details["display_name"] for key, details in RECIPES.items()}
+selected_meal_key = st.selectbox(
+    "What would you like to cook this week?",
+    options=list(recipe_options.keys()),
+    format_func=lambda key: recipe_options[key]
+)
+Action Button: Create a button with the label 'Generate Plan & Add to Cart'.
+
+Execution Flow: When the button is clicked, execute the entire workflow in sequence:
+
+Display a spinner with st.spinner(...).
+
+Call generate_shopping_list() with the user's selected meal.
+
+If the shopping list is empty, display a success message saying no items are needed.
+
+If the list is not empty, pass it to find_kroger_products().
+
+Pass the result of that to add_items_to_kroger_cart().
+
+Display a final success message using st.success() that lists the items added to the cart.
+
+If any step fails, display an error message using st.error().
+
+Please provide the complete, final code for app.py in a single Python code block.
