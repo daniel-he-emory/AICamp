@@ -1,161 +1,296 @@
 # 🧞‍♂️ GrocerGenie: AI Grocery Shopping Assistant
 
-GrocerGenie is a smart shopping assistant that streamlines meal planning through a conversational interface. It helps you manage your pantry inventory, plan meals with recipes, generate precise shopping lists, and add items directly to your Kroger cart.
+GrocerGenie is an intelligent grocery shopping assistant that helps you manage your pantry, plan meals, and shop efficiently. It uses AI to understand natural language and integrates with Kroger's API to add items directly to your cart.
 
 ## ✨ Features
 
-- **Conversational Pantry Management**: Update your pantry inventory through natural language
-- **Smart Meal Planning**: Get recipe suggestions from TheMealDB API
-- **Intelligent Shopping Lists**: Compare ingredients with your pantry to generate precise shopping lists
-- **Kroger Integration**: Add items directly to your Kroger cart using their API
-- **Session State Management**: Maintains context across conversations
+- **🤖 AI-Powered Conversations**: Natural language processing for pantry updates and meal planning
+- **📦 Smart Pantry Management**: Track what you have and what you need
+- **🍳 Intelligent Recipe Creation**: AI generates original recipes based on your available ingredients
+- **🛒 Kroger Integration**: Add items directly to your Kroger shopping cart
+- **📋 Automatic Shopping Lists**: Generate precise shopping lists from meal plans
+- **💾 Session Persistence**: Maintains your pantry and preferences across sessions
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.7+
-- Kroger API access token (provided in the project)
+- Python 3.7 or higher
+- Web browser
+- OpenAI API key (optional, but recommended for best experience)
 
 ### Installation
 
-1. **Clone the repository**:
+1. **Clone or download the project**:
    ```bash
    cd grocer-genie
    ```
 
-2. **Install Python dependencies**:
+2. **Run the setup script** (recommended):
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
+
+   Or manually install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Start the Flask backend**:
+3. **Set up your OpenAI API key** (optional but recommended):
+   - Get your API key from [OpenAI Platform](https://platform.openai.com/account/api-keys)
+   - Create a `.env` file in the `backend` directory:
+     ```bash
+     cd backend
+     echo "OPENAI_API_KEY=your_actual_api_key_here" > .env
+     ```
+
+4. **Start the backend server**:
    ```bash
    cd backend
    python app.py
    ```
-   The backend will run on `http://localhost:5000`
+   The server will start on `http://localhost:5001`
 
-4. **Open the frontend**:
+5. **Open the frontend**:
    - Open `frontend/index.html` in your web browser
    - Or serve it with a local server:
      ```bash
      cd frontend
      python -m http.server 8080
+     # Then visit http://localhost:8080
      ```
-   - Then visit `http://localhost:8080`
 
-## 🎯 Usage Examples
+## 🎯 How to Use GrocerGenie
 
 ### 1. Managing Your Pantry
 
+**Adding items to your pantry:**
 ```
-User: "I just bought 2 onions and a bag of rice, and I finished the milk"
-GrocerGenie: "OK, I've added 2 onions and 1 bag of rice to your pantry and removed the milk."
+You: "I bought 2 onions and a bag of rice"
+GrocerGenie: "I've updated your pantry!"
+```
 
-User: "What's in my pantry?"
+**Removing items from your pantry:**
+```
+You: "I finished the milk and used up 3 eggs"
+GrocerGenie: "I've updated your pantry!"
+```
+
+**Checking what's in your pantry:**
+```
+You: "What's in my pantry?"
 GrocerGenie: "Your pantry contains: onion: 2, rice: 1"
 ```
 
+**Natural language variations that work:**
+- "I got some chicken and 5 apples"
+- "The bread expired and I ran out of cheese"
+- "I added 2 tomatoes and used up the onions"
+- "My eggs spoiled and I threw away the milk"
+
 ### 2. Creating Meal Plans
 
+**Request recipes based on your pantry:**
 ```
-User: "I want some Italian recipes for dinner"
-GrocerGenie: [Shows 3 Italian recipes with images and ingredients]
-
-User: "Can you suggest some Mexican dishes?"
-GrocerGenie: [Shows Mexican recipes and generates shopping list]
+You: "I want to cook something with what I have"
+GrocerGenie: [Shows 3 AI-generated recipes using your available ingredients]
 ```
 
-### 3. Adding to Kroger Cart
-
+**Request specific cuisine types:**
 ```
-User: "Add these items to my cart"
-GrocerGenie: "I need your zip code to find a nearby Kroger store. What is your zip code?"
+You: "I want to cook Italian food tonight"
+GrocerGenie: [Shows Italian recipes and generates shopping list for missing ingredients]
+```
 
-User: "90210"
+**Other cuisine options:**
+- "I want Mexican recipes"
+- "Can you suggest Chinese dishes?"
+- "I'm in the mood for Italian food"
+
+### 3. Shopping with Kroger Integration
+
+**Set your location:**
+```
+You: "My zip code is 90210"
+GrocerGenie: "Got it! I've set your zip code to 90210."
+```
+
+**Add items to your Kroger cart:**
+```
+You: "Add these items to my cart"
 GrocerGenie: "I've added 5 items to your Kroger cart! I couldn't find these items: [list]"
 ```
 
-## 🏗️ Architecture
+**Complete workflow example:**
+1. Create a meal plan: "I want Italian recipes"
+2. Set your zip code: "My zip code is 90210"
+3. Add to cart: "Add these items to my cart"
 
-### Backend (Flask)
-- **Session State Management**: Tracks pantry, meal plans, and shopping lists
-- **Intent Recognition**: Simple keyword-based classification of user messages
-- **API Integrations**: TheMealDB for recipes, Kroger API for shopping
-- **Entity Extraction**: Parses food items and quantities from natural language
+## 🍳 Recipe Features
 
-### Frontend (Vanilla JS)
-- **Chat Interface**: Clean, responsive chat UI
-- **Dynamic Rendering**: Different message types (text, meal plans, shopping lists)
-- **Real-time Communication**: AJAX calls to backend API
+### AI-Generated Recipes
+GrocerGenie creates original recipes based on your available ingredients:
+- **Smart Ingredient Matching**: Uses what you have as the foundation
+- **Missing Ingredient Detection**: Identifies what you need to buy
+- **Substitution Suggestions**: Recommends alternatives when possible
+- **Detailed Instructions**: Step-by-step cooking directions with timing
+
+### Recipe Information
+Each recipe includes:
+- Creative recipe name
+- Ingredient list (marked with what you have vs. need to buy)
+- Detailed cooking instructions
+- Estimated cooking time
+- Cooking tips and variations
+
+## 🛒 Kroger Integration
+
+### How It Works
+1. **Location Detection**: Finds the nearest Kroger store using your zip code
+2. **Product Search**: Searches Kroger's catalog for your shopping list items
+3. **Cart Addition**: Automatically adds found items to your Kroger cart
+4. **Missing Items Report**: Tells you which items couldn't be found
+
+### Supported Features
+- ✅ Product search by name
+- ✅ Location-based store selection
+- ✅ Bulk cart addition
+- ✅ Missing item reporting
+
+## 🔧 Technical Details
+
+### Backend Architecture
+- **Flask Server**: RESTful API endpoints
+- **Session Management**: Maintains user state across conversations
+- **AI Integration**: OpenAI GPT-4 for natural language processing
+- **API Integrations**: TheMealDB for recipes, Kroger for shopping
+
+### Frontend Features
+- **Responsive Chat Interface**: Works on desktop and mobile
+- **Real-time Communication**: AJAX calls to backend
+- **Dynamic Content Rendering**: Different message types (text, recipes, shopping lists)
+- **User-friendly Design**: Clean, intuitive interface
 
 ### Data Storage
-- **pantry.json**: Persistent pantry inventory storage
+- **Pantry Data**: Stored in `data/pantry.json`
 - **Session State**: In-memory conversation context
+- **User Preferences**: Zip code and other settings
 
-## 🔧 API Endpoints
+## 🎨 User Interface
 
-- `POST /chat-with-agent`: Main conversational endpoint
-- `POST /set-zipcode`: Set user's zip code for Kroger integration
+### Chat Interface
+- **Message Types**: Text responses, recipe cards, shopping lists
+- **Input Methods**: Text area with Enter to send, Shift+Enter for new lines
+- **Visual Feedback**: Clear message threading and bot/user distinction
 
-## 🛠️ Technical Implementation
+### Recipe Display
+- Recipe name and description
+- Ingredient list with availability indicators
+- Step-by-step cooking instructions
+- Cooking time and tips
 
-### Intent Recognition
-The system recognizes these intents from user messages:
-- `update_pantry`: Add/remove items from pantry
-- `check_pantry`: View current pantry contents
-- `request_meal_plan`: Get recipe suggestions
-- `add_to_cart`: Add shopping list items to Kroger cart
-- `clarification`: Handle unclear requests
+### Shopping List
+- Items needed with quantities
+- Integration status with Kroger
+- Missing items reporting
 
-### Kroger Integration
-- **Location Finding**: Find nearest store by zip code
-- **Product Search**: Search Kroger's product catalog
-- **Cart Management**: Add items to user's Kroger cart
+## 🔑 Configuration
 
-### Ingredient Matching
-Smart ingredient comparison between recipes and pantry:
-- Basic name matching with normalization
-- Synonym recognition
-- Quantity checking
-- Shopping list generation for missing items
+### Environment Variables
+Create a `.env` file in the `backend` directory:
+
+```bash
+# Required for AI features (optional but recommended)
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### API Keys
+- **OpenAI API Key**: Get from [OpenAI Platform](https://platform.openai.com/account/api-keys)
+- **Kroger Access Token**: Already included in the application (may need refresh for production)
+
+## 🚧 Limitations & Notes
+
+### Current Limitations
+- **Kroger Token**: The included token may expire and need refresh
+- **Simple Parsing**: Basic natural language processing (enhanced with AI when available)
+- **Limited Cuisines**: Focus on Italian, Mexican, and Chinese cuisines
+- **Unit Conversions**: No complex ingredient quantity conversions
+
+### Fallback Features
+- **No OpenAI Key**: App works with keyword-based parsing
+- **API Failures**: Graceful degradation to simpler features
+- **Network Issues**: Local pantry management still works
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Backend won't start:**
+```bash
+# Check Python version
+python --version  # Should be 3.7+
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Check port availability
+# The app runs on port 5001 by default
+```
+
+**OpenAI features not working:**
+```bash
+# Check your .env file
+cat backend/.env
+
+# Verify API key is valid
+# The app will work with fallback features even without OpenAI
+```
+
+**Kroger integration issues:**
+- The included token may be expired
+- Check your zip code is correct
+- Some items may not be available at your local store
+
+**Frontend not connecting:**
+- Ensure backend is running on port 5001
+- Check browser console for errors
+- Try refreshing the page
 
 ## 📁 Project Structure
 
 ```
 grocer-genie/
 ├── backend/
-│   └── app.py              # Flask application
+│   ├── app.py              # Main Flask application
+│   ├── conftest.py         # Test configuration
+│   ├── test_*.py           # Test files
+│   └── .env                # Environment variables (create this)
 ├── frontend/
 │   ├── index.html          # Main HTML file
 │   ├── style.css           # Styling
-│   └── script.js           # Frontend JavaScript
+│   ├── script.js           # Frontend JavaScript
+│   └── script.test.js      # Frontend tests
 ├── data/
 │   └── pantry.json         # Pantry storage (auto-generated)
 ├── requirements.txt        # Python dependencies
+├── setup.sh               # Setup script
 └── README.md              # This file
 ```
 
-## 🔑 Environment Variables
-
-The Kroger API access token is currently hardcoded in the application. For production use, set it as an environment variable:
-
-```bash
-export KROGER_ACCESS_TOKEN="your_token_here"
-```
-
-## 🚧 Known Limitations
-
-- **Simple Intent Recognition**: Uses keyword matching instead of LLM
-- **Basic Entity Extraction**: Limited natural language parsing
-- **Token Expiration**: Kroger token may expire and need refresh
-- **Unit Conversions**: No complex ingredient quantity conversions
-
 ## 🤝 Contributing
 
-This is a hackathon project built according to the specifications in `GrocerGenie.md`. Feel free to enhance any of the features or add new functionality!
+This is a demonstration project. Feel free to:
+- Enhance the AI features
+- Add more recipe sources
+- Improve the user interface
+- Add more grocery store integrations
+- Extend the pantry management features
 
 ## 📄 License
 
 This project is for educational and demonstration purposes.
+
+---
+
+**Happy cooking and shopping with GrocerGenie! 🧞‍♂️🛒**
