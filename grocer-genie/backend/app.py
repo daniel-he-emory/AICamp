@@ -4,6 +4,14 @@ import json
 import os
 import requests
 from datetime import datetime
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 app = Flask(__name__)
 app.secret_key = 'grocer-genie-secret-key'
@@ -54,6 +62,152 @@ def save_pantry(pantry):
     os.makedirs(os.path.dirname(pantry_file), exist_ok=True)
     with open(pantry_file, 'w') as f:
         json.dump(pantry, f, indent=2)
+
+def chat_with_openai(message, state):
+    """
+    Use OpenAI with web search to handle user queries intelligently
+    """
+    # Prepare context about the user's current state
+    context = f"""
+    You are GrocerGenie, an AI grocery assistant. You help users manage their pantry, create meal plans, and add items to their Kroger shopping cart.
+    
+    Current user state:
+    - Pantry: {state.pantry}
+    - Current meal plan: {len(state.current_meal_plan)} recipes
+    - Shopping list: {len(state.current_shopping_list)} items
+    - User preferences: {state.user_preferences}
+    
+    You can help with:
+    1. Pantry management (checking what's available, updating inventory)
+    2. Meal planning (suggesting recipes based on preferences, dietary restrictions, cuisine)
+    3. Shopping list creation based on meal plans
+    4. Adding items to Kroger cart
+    
+    Always respond in a friendly, helpful manner. If you need to search for current information about recipes, cooking tips, or food-related topics, use web search to provide accurate, up-to-date information.
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-search-preview",
+            messages=[
+                {"role": "system", "content": context},
+                {"role": "user", "content": message}
+            ],
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "check_pantry",
+                        "description": "Check what items are currently in the user's pantry",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "update_pantry",
+                        "description": "Add or remove items from the pantry",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {"type": "string"},
+                                            "quantity": {"type": "number"},
+                                            "action": {"type": "string", "enum": ["add", "remove"]}
+                                        },
+                                        "required": ["name", "quantity", "action"]
+                                    }
+                                }
+                            },
+                            "required": ["items"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "create_meal_plan",
+                        "description": "Create a meal plan based on user preferences",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "cuisine": {"type": "string"},
+                                "dietary_restrictions": {"type": "array", "items": {"type": "string"}},
+                                "num_meals": {"type": "number", "default": 3}
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "add_to_cart",
+                        "description": "Add shopping list items to Kroger cart",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "zip_code": {"type": "string"}
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "web_search",
+                        "description": "Search the web for current information about recipes, cooking tips, or food-related topics",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {"type": "string"}
+                            },
+                            "required": ["query"]
+                        }
+                    }
+                }
+            ],
+            tool_choice="auto"
+        )
+        
+        return response.choices[0].message
+        
+    except Exception as e:
+        print(f"Error with OpenAI API: {e}")
+        return None
+
+def perform_web_search(query):
+    """
+    Perform enhanced response with OpenAI for recipe and food-related queries
+    """
+    try:
+        # Use OpenAI to provide comprehensive information about food/recipe topics
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a knowledgeable culinary assistant. Provide comprehensive, accurate information about recipes, cooking techniques, ingredients, nutrition, and food-related topics. Draw from your extensive knowledge of cooking, cuisines from around the world, dietary requirements, and food science. Always provide practical, actionable advice."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Please provide detailed information about: {query}. Include practical tips, alternatives, and any relevant cooking or nutritional advice."
+                }
+            ]
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        print(f"Error getting enhanced information: {e}")
+        return f"I'd be happy to help you with {query}, but I'm having trouble accessing that information right now. You can ask me about pantry management, meal planning, or adding items to your cart!"
 
 def recognize_intent(message):
     """
@@ -298,119 +452,130 @@ def chat_with_agent():
     # Load pantry from file
     state.pantry = load_pantry()
     
-    # Recognize intent
-    intent = recognize_intent(message)
+    # Use OpenAI to handle the conversation intelligently
+    ai_response = chat_with_openai(message, state)
+    
+    if not ai_response:
+        # Fallback to simple response if OpenAI fails
+        return jsonify({
+            'type': 'text',
+            'message': "I'm having trouble processing your request right now. Please try again."
+        })
     
     response = {'type': 'text', 'message': ''}
     
-    if intent == 'check_pantry':
-        if state.pantry:
-            pantry_items = [f"{item}: {quantity}" for item, quantity in state.pantry.items()]
-            response['message'] = f"Your pantry contains: {', '.join(pantry_items)}"
-        else:
-            response['message'] = "Your pantry is empty. You can add items by telling me what you bought or have."
-    
-    elif intent == 'update_pantry':
-        entities = extract_pantry_entities(message)
+    # Check if OpenAI wants to call a function
+    if hasattr(ai_response, 'tool_calls') and ai_response.tool_calls:
+        # Handle the first tool call (for simplicity)
+        tool_call = ai_response.tool_calls[0]
+        function_name = tool_call.function.name
+        function_args = json.loads(tool_call.function.arguments)
         
-        if entities:
-            for entity in entities:
-                item = entity['item']
-                quantity = entity['quantity']
-                action = entity['action']
-                
-                if action == 'add':
-                    state.pantry[item] = state.pantry.get(item, 0) + quantity
-                elif action == 'remove':
-                    if item in state.pantry:
-                        del state.pantry[item]
-            
-            save_pantry(state.pantry)
-            response['message'] = "I've updated your pantry!"
-        else:
-            response['message'] = "I couldn't understand what items you want to update. Please try again."
-    
-    elif intent == 'request_meal_plan':
-        # Extract cuisine or dietary preferences
-        cuisine = None
-        if 'italian' in message.lower():
-            cuisine = 'Italian'
-        elif 'mexican' in message.lower():
-            cuisine = 'Mexican'
-        elif 'chinese' in message.lower():
-            cuisine = 'Chinese'
-        
-        recipes = fetch_recipes(cuisine=cuisine)
-        
-        if recipes:
-            state.current_meal_plan = recipes
-            shopping_list = create_shopping_list(recipes, state.pantry)
-            state.current_shopping_list = shopping_list
-            
-            response = {
-                'type': 'meal_plan',
-                'meal_plan': recipes,
-                'shopping_list': shopping_list,
-                'message': f"Here's your meal plan with {len(recipes)} recipes!"
-            }
-        else:
-            response['message'] = "Sorry, I couldn't find any recipes. Please try again."
-    
-    elif intent == 'add_to_cart':
-        if not state.user_preferences.get('zip_code'):
-            # Check if message contains a zip code
-            import re
-            zip_match = re.search(r'\b\d{5}\b', message)
-            if zip_match:
-                zip_code = zip_match.group()
-                state.user_preferences['zip_code'] = zip_code
-                response['message'] = f"Got it! I've set your zip code to {zip_code}. Now let me add your items to the Kroger cart..."
-                # Continue with cart logic below
+        if function_name == 'check_pantry':
+            if state.pantry:
+                pantry_items = [f"{item}: {quantity}" for item, quantity in state.pantry.items()]
+                response['message'] = f"Your pantry contains: {', '.join(pantry_items)}"
             else:
-                response['message'] = "I need your zip code to find a nearby Kroger store. What is your zip code?"
-                save_session_state(state)
-                return jsonify(response)
+                response['message'] = "Your pantry is empty. You can add items by telling me what you bought or have."
         
-        if not state.current_shopping_list:
-            response['message'] = "You don't have any items in your shopping list. Please create a meal plan first."
-        else:
-            # Implement the agentic workflow for adding items to cart
-            product_ids = []
-            not_found_items = []
+        elif function_name == 'update_pantry':
+            items = function_args.get('items', [])
             
-            for item in state.current_shopping_list:
-                # Search for each item in Kroger
-                products = search_kroger_products(item['name'], state.user_preferences.get('zip_code'))
+            if items:
+                for item in items:
+                    name = item['name'].lower()
+                    quantity = item['quantity']
+                    action = item['action']
+                    
+                    if action == 'add':
+                        state.pantry[name] = state.pantry.get(name, 0) + quantity
+                    elif action == 'remove':
+                        if name in state.pantry:
+                            if quantity >= state.pantry[name]:
+                                del state.pantry[name]
+                            else:
+                                state.pantry[name] -= quantity
                 
-                if products:
-                    # Select the first product (as per MVP requirements)
-                    product_id = products[0].get('productId')
-                    if product_id:
-                        product_ids.append(product_id)
+                save_pantry(state.pantry)
+                response['message'] = "I've updated your pantry! " + (ai_response.content or "")
+            else:
+                response['message'] = "I couldn't understand what items you want to update. Please try again."
+        
+        elif function_name == 'create_meal_plan':
+            cuisine = function_args.get('cuisine')
+            dietary_restrictions = function_args.get('dietary_restrictions', [])
+            num_meals = function_args.get('num_meals', 3)
+            
+            recipes = fetch_recipes(cuisine=cuisine, num_meals=num_meals)
+            
+            if recipes:
+                state.current_meal_plan = recipes
+                shopping_list = create_shopping_list(recipes, state.pantry)
+                state.current_shopping_list = shopping_list
+                
+                response = {
+                    'type': 'meal_plan',
+                    'meal_plan': recipes,
+                    'shopping_list': shopping_list,
+                    'message': ai_response.content or f"Here's your meal plan with {len(recipes)} recipes!"
+                }
+            else:
+                response['message'] = "Sorry, I couldn't find any recipes matching your preferences. Please try again."
+        
+        elif function_name == 'add_to_cart':
+            zip_code = function_args.get('zip_code')
+            
+            if zip_code:
+                state.user_preferences['zip_code'] = zip_code
+            
+            if not state.user_preferences.get('zip_code'):
+                response['message'] = "I need your zip code to find a nearby Kroger store. What is your zip code?"
+            elif not state.current_shopping_list:
+                response['message'] = "You don't have any items in your shopping list. Please create a meal plan first."
+            else:
+                # Add items to cart using existing logic
+                product_ids = []
+                not_found_items = []
+                
+                for item in state.current_shopping_list:
+                    products = search_kroger_products(item['name'], state.user_preferences.get('zip_code'))
+                    
+                    if products:
+                        product_id = products[0].get('productId')
+                        if product_id:
+                            product_ids.append(product_id)
+                        else:
+                            not_found_items.append(item['name'])
                     else:
                         not_found_items.append(item['name'])
-                else:
-                    not_found_items.append(item['name'])
-            
-            # Add found items to cart
-            if product_ids:
-                success, message = add_items_to_kroger_cart(product_ids)
                 
-                if success:
-                    success_count = len(product_ids)
-                    response_message = f"I've added {success_count} items to your Kroger cart!"
+                if product_ids:
+                    success, message = add_items_to_kroger_cart(product_ids)
                     
-                    if not_found_items:
-                        response_message += f" I couldn't find these items: {', '.join(not_found_items)}"
-                    
-                    response['message'] = response_message
+                    if success:
+                        success_count = len(product_ids)
+                        response_message = f"I've added {success_count} items to your Kroger cart!"
+                        
+                        if not_found_items:
+                            response_message += f" I couldn't find these items: {', '.join(not_found_items)}"
+                        
+                        response['message'] = response_message
+                    else:
+                        response['message'] = f"Sorry, I had trouble adding items to your cart: {message}"
                 else:
-                    response['message'] = f"Sorry, I had trouble adding items to your cart: {message}"
-            else:
-                response['message'] = f"I couldn't find any of the items in your shopping list at Kroger: {', '.join(not_found_items)}"
+                    response['message'] = f"I couldn't find any of the items in your shopping list at Kroger: {', '.join(not_found_items)}"
+        
+        elif function_name == 'web_search':
+            query = function_args.get('query', '')
+            search_results = perform_web_search(query)
+            response['message'] = search_results
+        
+        else:
+            response['message'] = ai_response.content or "I'm not sure how to help with that."
     
     else:
-        response['message'] = "I'm not sure what you want to do. You can ask me to check your pantry, update your pantry, create a meal plan, or add items to your Kroger cart."
+        # No function call, just return the AI's response
+        response['message'] = ai_response.content or "I'm here to help with your pantry, meal planning, and grocery shopping!"
     
     save_session_state(state)
     

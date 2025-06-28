@@ -1,0 +1,12 @@
+# Environment Configuration Example
+# Copy this content to a file named '.env' in the same directory
+
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Optional: Set the base URL if using a different endpoint
+# OPENAI_BASE_URL=https://api.openai.com/v1
+
+# Instructions:
+# 1. Get your OpenAI API key from https://platform.openai.com/api-keys
+# 2. Create a file named '.env' in the backend directory
+# 3. Copy the OPENAI_API_KEY line above and replace 'your_openai_api_key_here' with your actual API key 

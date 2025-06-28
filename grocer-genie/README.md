@@ -4,17 +4,21 @@ GrocerGenie is a smart shopping assistant that streamlines meal planning through
 
 ## ✨ Features
 
+- **AI-Powered Conversations**: Uses OpenAI GPT-4o-mini for intelligent, natural language understanding
+- **Enhanced Knowledge Base**: AI assistant provides detailed information about recipes, cooking techniques, and nutrition
 - **Conversational Pantry Management**: Update your pantry inventory through natural language
-- **Smart Meal Planning**: Get recipe suggestions from TheMealDB API
+- **Smart Meal Planning**: Get recipe suggestions from TheMealDB API with AI-enhanced descriptions
 - **Intelligent Shopping Lists**: Compare ingredients with your pantry to generate precise shopping lists
 - **Kroger Integration**: Add items directly to your Kroger cart using their API
 - **Session State Management**: Maintains context across conversations
+- **Web Search Capabilities**: AI can provide comprehensive food and cooking information
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.7+
+- OpenAI API key (get one from [OpenAI Platform](https://platform.openai.com/api-keys))
 - Kroger API access token (provided in the project)
 
 ### Installation
@@ -29,7 +33,14 @@ GrocerGenie is a smart shopping assistant that streamlines meal planning through
    pip install -r requirements.txt
    ```
 
-3. **Start the Flask backend**:
+3. **Set up OpenAI API key**:
+   ```bash
+   cd backend
+   cp config_example.txt .env
+   # Edit .env and replace 'your_openai_api_key_here' with your actual OpenAI API key
+   ```
+
+4. **Start the Flask backend**:
    ```bash
    cd backend
    python app.py
@@ -61,13 +72,23 @@ GrocerGenie: "Your pantry contains: onion: 2, rice: 1"
 
 ```
 User: "I want some Italian recipes for dinner"
-GrocerGenie: [Shows 3 Italian recipes with images and ingredients]
+GrocerGenie: [Shows 3 Italian recipes with images and ingredients, plus AI-enhanced descriptions and cooking tips]
 
 User: "Can you suggest some Mexican dishes?"
-GrocerGenie: [Shows Mexican recipes and generates shopping list]
+GrocerGenie: [Shows Mexican recipes and generates shopping list with intelligent ingredient analysis]
 ```
 
-### 3. Adding to Kroger Cart
+### 3. Getting Cooking Information
+
+```
+User: "What's the best way to cook pasta?"
+GrocerGenie: "Here's comprehensive information about cooking pasta: [detailed AI-generated cooking instructions, tips, and techniques]"
+
+User: "Tell me about Mediterranean diet"
+GrocerGenie: [Provides detailed information about Mediterranean diet, health benefits, and recipe suggestions]
+```
+
+### 4. Adding to Kroger Cart
 
 ```
 User: "Add these items to my cart"
@@ -80,10 +101,12 @@ GrocerGenie: "I've added 5 items to your Kroger cart! I couldn't find these item
 ## 🏗️ Architecture
 
 ### Backend (Flask)
+- **AI-Powered Chat**: OpenAI GPT-4o-mini handles natural language understanding and function calling
 - **Session State Management**: Tracks pantry, meal plans, and shopping lists
-- **Intent Recognition**: Simple keyword-based classification of user messages
-- **API Integrations**: TheMealDB for recipes, Kroger API for shopping
-- **Entity Extraction**: Parses food items and quantities from natural language
+- **Intelligent Intent Recognition**: AI-powered classification and function calling for user requests
+- **API Integrations**: OpenAI for conversations, TheMealDB for recipes, Kroger API for shopping
+- **Smart Entity Extraction**: AI parses food items and quantities from natural language
+- **Enhanced Information**: AI provides comprehensive cooking and nutrition knowledge
 
 ### Frontend (Vanilla JS)
 - **Chat Interface**: Clean, responsive chat UI
@@ -147,10 +170,11 @@ export KROGER_ACCESS_TOKEN="your_token_here"
 
 ## 🚧 Known Limitations
 
-- **Simple Intent Recognition**: Uses keyword matching instead of LLM
-- **Basic Entity Extraction**: Limited natural language parsing
-- **Token Expiration**: Kroger token may expire and need refresh
+- **OpenAI API Dependency**: Requires valid OpenAI API key and internet connection
+- **Token Expiration**: Both OpenAI and Kroger tokens may expire and need refresh
 - **Unit Conversions**: No complex ingredient quantity conversions
+- **Real-time Web Search**: Uses AI knowledge base rather than live web search
+- **Cost Considerations**: OpenAI API usage incurs costs based on token consumption
 
 ## 🤝 Contributing
 
