@@ -97,15 +97,17 @@ For the agent to have a coherent, multi-turn conversation, it must maintain a se
 
 #### Feature 6: Agentic Shopping with Kroger API
 
-**Description:** After a shopping list is approved by the user, the agent uses the Kroger API to add the items to the user's cart.
-
-**Development Steps:**
-1. **User Command:** Triggered by the `add_to_cart` intent (e.g., "Looks good, add them to my Kroger cart").
-2. **Prerequisite Check:** If `user_preferences.zip_code` is not set, the agent must ask for it first. ("I need your zip code to find a nearby Kroger store. What is it?")
-3. **Agentic Workflow (Decision Tree):** For each item in `session_state.current_shopping_list`:
-   - **a. Search:** Use the `search_products` tool for the item.
-   - **b. Handle No Results:** If the search returns zero items, inform the user: "I couldn't find [item name] at your Kroger. Would you like to skip it?"
-   - **c. Handle Multiple Results:** If the search returns multiple items, apply a simple selection rule: select the first result (`productId` from the first item in the response). For this MVP, do not ask the user to choose.
-   - **d. Collect IDs:** Add the selected `productId` to a temporary list.
-4. **Bulk Add to Cart:** Once the loop is complete, call the `bulk_add_to_cart` tool with the collected list of product IDs.
-5. **User Feedback:** Report the final status to the user in the chat (e.g., "I've added [X] items to your Kroger cart. I was unable to find [Y].").
+* **Description:** After the shopping list is generated and displayed in the chat, the user can command GrocerGenie to add the items to their Kroger cart.  
+* **Development Steps:**  
+  1. **Setup Kroger MCP Server:** This remains the first priority.  
+  2. **User Command:** The user gives a command like, "Okay, add those to my Kroger cart."  
+  3. **Agentic Workflow:** The agent identifies the "add to cart" intent and executes the workflow:  
+     * Use the search\_products tool for each item on the list.  
+     * Collect the productId for each item.  
+     * Use the bulk\_add\_to\_cart tool.  
+  4. **User Feedback:** The agent reports its progress and success/failure back to the user in the chat interface.  
+* **Tools & Options:**  
+  * **Primary Tool:** The **Kroger MCP Server**.  
+* **Key Considerations & Limitations:**  
+  * **Authentication & One-Way Cart:** These remain the same. The agent must handle the auth flow and clearly communicate the limitations of the Kroger API to the user via chat.  
+  * **Store Location:** The agent should initiate a conversation to set the user's preferred store if it isn't already set. ("I see you want to shop at Kroger. What is your zip code so I can find the nearest stores?")
