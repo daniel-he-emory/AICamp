@@ -4,6 +4,54 @@ import json
 import os
 import requests
 from datetime import datetime
+from openai import OpenAI
+import dotenv
+import re
+
+dotenv.load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def recognize_intent_with_llm(message):
+    """Enhanced intent recognition using OpenAI"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": """You are GrocerGenie, a helpful grocery assistant. 
+                Classify the user's intent into one of these categories:
+                - check_pantry (user wants to see pantry contents)
+                - update_pantry (user wants to add/remove items)
+                - request_meal_plan (user wants recipe suggestions)
+                - add_to_cart (user wants to add items to Kroger cart)
+                - clarification (unclear request)"""},
+                {"role": "user", "content": message}
+            ],
+            temperature=0.1
+        )
+        return response.choices[0].message.content.lower()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return recognize_intent(message)
+
+def extract_entities_with_llm(message):
+    """Enhanced entity extraction using OpenAI"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": """Extract grocery items and actions from the message. 
+                Return JSON format: {"items": [{"item": "...", "quantity": number, "action": "add/remove"}]}"""},
+                {"role": "user", "content": message}
+            ],
+            temperature=0.1
+        )
+        return json.loads(response.choices[0].message.content)["items"]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return extract_pantry_entities(message)
 
 app = Flask(__name__)
 app.secret_key = 'grocer-genie-secret-key'
@@ -301,7 +349,7 @@ def chat_with_agent():
     state.pantry = load_pantry()
     
     # Recognize intent
-    intent = recognize_intent(message)
+    intent = recognize_intent_with_llm(message)
     
     response = {'type': 'text', 'message': ''}
     
@@ -430,4 +478,4 @@ def set_zipcode():
     return jsonify({'message': f'Zip code set to {zipcode}'})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5000)
