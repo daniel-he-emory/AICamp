@@ -82,7 +82,7 @@ def call_openai_with_fallback(messages, temperature=0.3, max_tokens=500):
     """
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-search-preview",
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
@@ -134,6 +134,61 @@ Examples:
 User message: "{message}"
 
 Respond with only valid JSON:"""
+
+def normalize_ingredient_name(name):
+    """
+    Normalize ingredient names for better matching
+    """
+    # Convert to lowercase and remove common variations
+    name = name.lower().strip()
+    
+    # Common ingredient variations
+    variations = {
+        'tomato': ['tomatoes', 'tomato'],
+        'onion': ['onions', 'onion'],
+        'garlic': ['garlic', 'garlic clove', 'garlic cloves'],
+        'egg': ['eggs', 'egg'],
+        'milk': ['milk', 'whole milk', 'skim milk'],
+        'butter': ['butter', 'unsalted butter', 'salted butter'],
+        'olive oil': ['olive oil', 'extra virgin olive oil', 'evoo'],
+        'salt': ['salt', 'table salt', 'kosher salt'],
+        'pepper': ['pepper', 'black pepper', 'ground pepper'],
+        'flour': ['flour', 'all purpose flour', 'plain flour'],
+        'sugar': ['sugar', 'white sugar', 'granulated sugar'],
+        'rice': ['rice', 'white rice', 'brown rice'],
+        'pasta': ['pasta', 'spaghetti', 'penne', 'fettuccine'],
+        'chicken': ['chicken', 'chicken breast', 'chicken thighs'],
+        'beef': ['beef', 'ground beef', 'beef steak'],
+        'cheese': ['cheese', 'cheddar cheese', 'mozzarella cheese']
+    }
+    
+    # Check if the name matches any variation
+    for base_name, variants in variations.items():
+        if name in variants:
+            return base_name
+    
+    return name
+
+def check_ingredient_availability(ingredient_name, pantry_items):
+    """
+    Check if an ingredient is available in the pantry, accounting for variations
+    """
+    normalized_name = normalize_ingredient_name(ingredient_name)
+    
+    # Check exact match first
+    if ingredient_name in pantry_items:
+        return True, pantry_items[ingredient_name]
+    
+    # Check normalized match
+    if normalized_name in pantry_items:
+        return True, pantry_items[normalized_name]
+    
+    # Check if any pantry item contains the ingredient name
+    for pantry_item, quantity in pantry_items.items():
+        if normalized_name in normalize_ingredient_name(pantry_item):
+            return True, quantity
+    
+    return False, 0
 
 def recognize_intent(message):
     """
@@ -419,6 +474,165 @@ def add_items_to_kroger_cart(product_ids):
         print(f"Error adding items to Kroger cart: {e}")
         return False, f"Error adding items to cart: {str(e)}"
 
+def get_recipe_selection_prompt(pantry_items, cuisine=None):
+    """
+    Return the prompt template for LLM-powered recipe selection based on pantry
+    """
+    pantry_text = ", ".join([f"{item} ({quantity})" for item, quantity in pantry_items.items()]) if pantry_items else "empty pantry"
+    
+    cuisine_filter = f" Focus on {cuisine} cuisine." if cuisine else ""
+    
+    return f"""You are a smart recipe recommendation system. Based on the user's pantry ingredients, suggest 3 recipes they can make.
+
+User's pantry: {pantry_text}
+{cuisine_filter}
+
+Rules:
+1. Only suggest recipes where the user has MOST of the required ingredients (at least 60% of ingredients)
+2. If the user has very few ingredients, suggest simple recipes with minimal ingredients
+3. For missing ingredients, suggest common substitutions or note they need to buy them
+4. Prioritize recipes that use the most pantry ingredients
+5. Be realistic about what can be made with the available ingredients
+6. Consider ingredient variations (e.g., "eggs" vs "egg", "tomatoes" vs "tomato")
+
+For each recipe, provide:
+- Recipe name
+- List of ingredients (mark which ones the user has with "has": true and which they need to buy with "has": false)
+- Brief cooking instructions
+- Estimated cooking time
+
+Respond in this JSON format:
+{{
+  "recipes": [
+    {{
+      "name": "Recipe Name",
+      "ingredients": [
+        {{"name": "ingredient name", "has": true/false, "substitution": "optional substitution"}}
+      ],
+      "instructions": "Brief cooking steps",
+      "cooking_time": "30 minutes"
+    }}
+  ]
+}}
+
+IMPORTANT: Only include ingredients that are actually needed for the recipe. Don't add unnecessary ingredients. Be precise about what the user has vs what they need to buy.
+
+User message: "I want to cook something with what I have" """
+
+def select_recipes_with_llm(pantry_items, cuisine=None):
+    """
+    Use LLM to intelligently select recipes based on available pantry ingredients
+    """
+    if not pantry_items:
+        # If pantry is empty, return simple recipes that require minimal ingredients
+        return [{
+            "name": "Simple Pasta with Olive Oil",
+            "ingredients": [
+                {"name": "pasta", "has": False, "substitution": None},
+                {"name": "olive oil", "has": False, "substitution": None},
+                {"name": "salt", "has": False, "substitution": None}
+            ],
+            "instructions": "Boil pasta according to package instructions. Drain and toss with olive oil and salt.",
+            "cooking_time": "15 minutes"
+        }]
+    
+    prompt = get_recipe_selection_prompt(pantry_items, cuisine)
+    messages = [{"role": "user", "content": prompt}]
+    
+    response, error = call_openai_with_fallback(messages, temperature=0.3, max_tokens=800)
+    
+    if response:
+        try:
+            # Try to parse JSON response
+            recipe_data = json.loads(response)
+            
+            if isinstance(recipe_data, dict) and 'recipes' in recipe_data:
+                recipes = recipe_data['recipes']
+                if isinstance(recipes, list) and len(recipes) > 0:
+                    logger.info(f"LLM selected {len(recipes)} recipes based on pantry")
+                    return recipes
+                else:
+                    logger.warning("LLM returned empty recipes list, falling back to simple recipes")
+            else:
+                logger.warning("LLM response missing 'recipes' key, falling back to simple recipes")
+        except json.JSONDecodeError as e:
+            logger.warning(f"LLM returned invalid JSON: {e}, falling back to simple recipes")
+    else:
+        logger.warning(f"LLM recipe selection failed: {error}, falling back to simple recipes")
+    
+    # Fallback to simple recipe suggestions based on available ingredients
+    return create_fallback_recipes(pantry_items, cuisine)
+
+def create_fallback_recipes(pantry_items, cuisine=None):
+    """
+    Create simple fallback recipes when LLM fails
+    """
+    recipes = []
+    
+    # Simple recipe templates based on common ingredients
+    has_eggs, egg_quantity = check_ingredient_availability('eggs', pantry_items)
+    if has_eggs:
+        has_butter, _ = check_ingredient_availability('butter', pantry_items)
+        has_salt, _ = check_ingredient_availability('salt', pantry_items)
+        
+        recipes.append({
+            "name": "Scrambled Eggs",
+            "ingredients": [
+                {"name": "eggs", "has": True, "substitution": None},
+                {"name": "butter", "has": has_butter, "substitution": "oil" if not has_butter else None},
+                {"name": "salt", "has": has_salt, "substitution": None}
+            ],
+            "instructions": "Crack eggs into bowl, whisk. Heat pan with butter/oil, add eggs and scramble until cooked.",
+            "cooking_time": "5 minutes"
+        })
+    
+    has_pasta, _ = check_ingredient_availability('pasta', pantry_items)
+    if has_pasta:
+        has_oil, _ = check_ingredient_availability('olive oil', pantry_items)
+        has_salt, _ = check_ingredient_availability('salt', pantry_items)
+        
+        recipes.append({
+            "name": "Simple Pasta",
+            "ingredients": [
+                {"name": "pasta", "has": True, "substitution": None},
+                {"name": "olive oil", "has": has_oil, "substitution": "butter" if not has_oil else None},
+                {"name": "salt", "has": has_salt, "substitution": None}
+            ],
+            "instructions": "Boil pasta in salted water until al dente. Drain and toss with oil/butter.",
+            "cooking_time": "15 minutes"
+        })
+    
+    has_rice, _ = check_ingredient_availability('rice', pantry_items)
+    if has_rice:
+        has_salt, _ = check_ingredient_availability('salt', pantry_items)
+        
+        recipes.append({
+            "name": "Simple Rice",
+            "ingredients": [
+                {"name": "rice", "has": True, "substitution": None},
+                {"name": "water", "has": True, "substitution": None},
+                {"name": "salt", "has": has_salt, "substitution": None}
+            ],
+            "instructions": "Rinse rice, add to pot with water (2:1 ratio). Bring to boil, reduce heat, cover and simmer 20 minutes.",
+            "cooking_time": "25 minutes"
+        })
+    
+    # If no specific ingredients match, suggest a basic shopping list
+    if not recipes:
+        recipes.append({
+            "name": "Basic Grocery Shopping",
+            "ingredients": [
+                {"name": "pasta", "has": False, "substitution": None},
+                {"name": "eggs", "has": False, "substitution": None},
+                {"name": "bread", "has": False, "substitution": None},
+                {"name": "milk", "has": False, "substitution": None}
+            ],
+            "instructions": "These are basic ingredients to get started. Add them to your cart and I can suggest recipes!",
+            "cooking_time": "Shopping trip"
+        })
+    
+    return recipes[:3]  # Return max 3 recipes
+
 @app.route('/chat-with-agent', methods=['POST'])
 def chat_with_agent():
     data = request.json
@@ -471,18 +685,34 @@ def chat_with_agent():
         elif 'chinese' in message.lower():
             cuisine = 'Chinese'
         
-        recipes = fetch_recipes(cuisine=cuisine)
+        # Use LLM to select recipes based on pantry contents
+        recipes = select_recipes_with_llm(state.pantry, cuisine)
         
         if recipes:
             state.current_meal_plan = recipes
-            shopping_list = create_shopping_list(recipes, state.pantry)
+            
+            # Create shopping list from missing ingredients
+            shopping_list = []
+            for recipe in recipes:
+                for ingredient in recipe['ingredients']:
+                    if not ingredient['has']:
+                        # Check if we already have this item in shopping list
+                        existing_item = next((item for item in shopping_list if item['name'] == ingredient['name']), None)
+                        if existing_item:
+                            existing_item['needed'] += 1
+                        else:
+                            shopping_list.append({
+                                'name': ingredient['name'],
+                                'needed': 1
+                            })
+            
             state.current_shopping_list = shopping_list
             
             response = {
                 'type': 'meal_plan',
                 'meal_plan': recipes,
                 'shopping_list': shopping_list,
-                'message': f"Here's your meal plan with {len(recipes)} recipes!"
+                'message': f"Here's your personalized meal plan with {len(recipes)} recipes based on your pantry!"
             }
         else:
             response['message'] = "Sorry, I couldn't find any recipes. Please try again."
