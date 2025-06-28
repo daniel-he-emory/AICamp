@@ -4,12 +4,21 @@ import json
 import os
 import requests
 from datetime import datetime
+import openai
+import logging
 
 app = Flask(__name__)
 app.secret_key = 'grocer-genie-secret-key'
 CORS(app)
 
 KROGER_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vYXBpLmtyb2dlci5jb20vdjEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiWjRGZDNtc2tJSDg4aXJ0N0xCNWM2Zz09IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhaWNhbXAtYmJjNjc1ZDYiLCJleHAiOjE3NTExNDIyOTUsImlhdCI6MTc1MTE0MDQ5MCwiaXNzIjoiYXBpLmtyb2dlci5jb20iLCJzdWIiOiI1MzgxZDNiMi1mM2JkLTU2NDYtYWI0Zi05YzZmNDUwNjg2NWQiLCJzY29wZSI6InByb2R1Y3QuY29tcGFjdCIsImF1dGhBdCI6MTc1MTE0MDQ5NTQ0MDgyMzk2NCwiYXpwIjoiYWljYW1wLWJiYzY3NWQ2In0.FPrEA7NBTTy_jgLK0xrB-la4hoBUHDO7cmaApJUmtyNSTw1EyiN9T9P8HOFHIE8pqTwTBIKczP4gbnirPe7LcB689CGO68I8TXUP0QTxFQGZNDnAcrUiQKPySo1484OXZO34OtiRN9KXrNfVXUdVQ5-8bxeYmFAZyOMZMrjJ_tCA8lIqUX_3a0DK29Lir2VCROvHqs1KFczq460oQILUtII4XDCSalGpYLY2EU2nNwNzJIV4yr8EjDIlH9gZoPkE4OoQQPNMCWHdNYwWetZ87IFcST7YEOpSu6bZtSMW8I6RSLcWDiegW22RfpcRJzqZ_cSLS2ybZad1iC04Ricm4Q"
+
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+openai.api_key = OPENAI_API_KEY
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class SessionState:
     def __init__(self):
@@ -55,11 +64,88 @@ def save_pantry(pantry):
     with open(pantry_file, 'w') as f:
         json.dump(pantry, f, indent=2)
 
+def call_openai_with_fallback(messages, temperature=0.3, max_tokens=500):
+    """
+    Call OpenAI API with error handling and fallback
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        return response.choices[0].message.content.strip(), None
+    except Exception as e:
+        logger.error(f"OpenAI API error: {str(e)}")
+        return None, str(e)
+
+def get_intent_classification_prompt():
+    """
+    Return the prompt template for intent classification
+    """
+    return """You are a grocery shopping assistant. Classify the user's message into one of these intents:
+
+- update_pantry: User wants to add, remove, or modify items in their pantry
+- check_pantry: User wants to see what's currently in their pantry
+- request_meal_plan: User wants recipe suggestions or meal planning
+- add_to_cart: User wants to add items to their Kroger shopping cart
+- clarification: Message is unclear or doesn't fit other categories
+
+Examples:
+"I bought 2 onions and a bag of rice" -> update_pantry
+"What's in my pantry?" -> check_pantry
+"I want to cook Italian food tonight" -> request_meal_plan
+"Add these items to my cart" -> add_to_cart
+"Hello" -> clarification
+
+User message: "{message}"
+
+Respond with only the intent name (e.g., "update_pantry")."""
+
+def get_entity_extraction_prompt():
+    """
+    Return the prompt template for entity extraction
+    """
+    return """You are a grocery shopping assistant. Extract food items, quantities, and actions from the user's message.
+
+Return a JSON array with objects containing:
+- item: the food item name (normalized, lowercase, singular)
+- quantity: numeric quantity (use 1 if not specified)
+- action: "add" (for buying/adding items) or "remove" (for using up/finishing items)
+
+Examples:
+"I bought 2 onions and a bag of rice" -> [{{"item": "onion", "quantity": 2, "action": "add"}}, {{"item": "rice", "quantity": 1, "action": "add"}}]
+"I finished the milk and used up 3 eggs" -> [{{"item": "milk", "quantity": 0, "action": "remove"}}, {{"item": "egg", "quantity": 3, "action": "remove"}}]
+"I got some chicken and 5 apples" -> [{{"item": "chicken", "quantity": 1, "action": "add"}}, {{"item": "apple", "quantity": 5, "action": "add"}}]
+
+User message: "{message}"
+
+Respond with only valid JSON:"""
+
 def recognize_intent(message):
     """
-    Simple intent recognition - in a real app, this would use an LLM
-    For now, using keyword matching
+    LLM-powered intent recognition with fallback to keyword matching
     """
+    prompt = get_intent_classification_prompt().format(message=message)
+    messages = [{"role": "user", "content": prompt}]
+    
+    response, error = call_openai_with_fallback(messages, temperature=0.1, max_tokens=50)
+    
+    if response:
+        # Clean response and validate
+        intent = response.lower().strip()
+        valid_intents = ['update_pantry', 'check_pantry', 'request_meal_plan', 'add_to_cart', 'clarification']
+        
+        if intent in valid_intents:
+            logger.info(f"LLM classified intent: {intent}")
+            return intent
+        else:
+            logger.warning(f"LLM returned invalid intent: {intent}, falling back to keyword matching")
+    else:
+        logger.warning(f"LLM intent recognition failed: {error}, falling back to keyword matching")
+    
+    # Fallback to keyword matching
     message_lower = message.lower()
     
     if any(word in message_lower for word in ['pantry', 'have', 'inventory', 'bought', 'finished', 'added', 'removed']):
@@ -77,10 +163,41 @@ def recognize_intent(message):
 
 def extract_pantry_entities(message):
     """
-    Simple entity extraction - in a real app, this would use an LLM
-    For now, using simple parsing
+    LLM-powered entity extraction with fallback to simple parsing
     """
-    # This is a simplified version - in reality, you'd use an LLM for better parsing
+    prompt = get_entity_extraction_prompt().format(message=message)
+    messages = [{"role": "user", "content": prompt}]
+    
+    response, error = call_openai_with_fallback(messages, temperature=0.1, max_tokens=300)
+    
+    if response:
+        try:
+            # Try to parse JSON response
+            entities = json.loads(response)
+            
+            # Validate structure
+            if isinstance(entities, list):
+                valid_entities = []
+                for entity in entities:
+                    if (isinstance(entity, dict) and 
+                        'item' in entity and 'quantity' in entity and 'action' in entity and
+                        entity['action'] in ['add', 'remove'] and
+                        isinstance(entity['quantity'], (int, float))):
+                        valid_entities.append(entity)
+                
+                if valid_entities:
+                    logger.info(f"LLM extracted {len(valid_entities)} entities")
+                    return valid_entities
+                else:
+                    logger.warning("LLM returned invalid entity structure, falling back to simple parsing")
+            else:
+                logger.warning("LLM response is not a list, falling back to simple parsing")
+        except json.JSONDecodeError as e:
+            logger.warning(f"LLM returned invalid JSON: {e}, falling back to simple parsing")
+    else:
+        logger.warning(f"LLM entity extraction failed: {error}, falling back to simple parsing")
+    
+    # Fallback to simple parsing
     entities = []
     
     # Simple patterns for demo
