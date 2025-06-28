@@ -6,9 +6,9 @@
 
 **The Problem:** Meal planning is a recurring, time-consuming, and often stressful task. It involves deciding what to eat, finding recipes, checking current inventory in the pantry and fridge, and compiling a precise shopping list. This process often leads to decision fatigue, forgotten ingredients, and food waste from over-purchasing.
 
-**Our Solution:** GrocerGenie is a smart shopping assistant designed to eliminate the friction of weekly meal planning. By understanding a user's dietary goals and knowing the current state of their pantry, the agent intelligently plans meals for the week, generates recipes, and produces an exact shopping list of only the items needed. This streamlines the entire process, saving users time, money, and mental energy.
+**Our Solution:** GrocerGenie is a smart shopping assistant designed to eliminate the friction of weekly meal planning. By understanding a user's dietary goals and knowing the current state of their pantry, the agent intelligently plans meals for the week, generates recipes, produces an exact shopping list, and can even place the order for the user. This streamlines the entire process, saving users time, money, and mental energy.
 
-**Hackathon Goal:** To build a functional Minimum Viable Product (MVP) that demonstrates the core logic: taking user input, referencing a simulated pantry, fetching recipes, and generating a shopping list of missing ingredients.
+**Hackathon Goal:** To build a functional Minimum Viable Product (MVP) that demonstrates the core logic: taking user input, referencing a simulated pantry, fetching recipes, generating a shopping list, and using an agentic tool to add those items to a real Kroger shopping cart.
 
 ### 2\. Key Features & Development Plan
 
@@ -65,7 +65,7 @@ This section breaks down each feature into its core function, step-by-step devel
 * **Description:** This is the central feature of the application. It compares the ingredients required for the meal plan against the user's pantry and determines exactly what is missing.  
 * **Development Steps:**  
   1. **Aggregate Ingredients:** Combine the ingredient lists from all selected recipes into a single master list.  
-  2. **Normalize Data:** Clean up the ingredient names from the recipe API. Convert them to lowercase and remove extra words to match the keys in your pantry.json file (e.g., "1 cup of Flour" becomes "flour"). This is a critical step.  
+  2. **Normalize Data:** Clean up the ingredient names from the recipe API. Convert them to lowercase and remove extra words to match the keys in your pentry.json file (e.g., "1 cup of Flour" becomes "flour"). This is a critical step.  
   3. **Compare & Contrast:** Iterate through the master ingredient list. For each item, check if its normalized name exists as a key in the pantry dictionary (and has a value \> 0).  
   4. **Build Shopping List:** If an ingredient is *not* found in the pantry, add it to a new list, which will become your final shopping list.  
   5. **Return Response:** Structure the final backend response as a JSON object containing both the meal plan (recipe names, images) and the generated shopping list.  
@@ -85,3 +85,22 @@ This section breaks down each feature into its core function, step-by-step devel
 * **Tools & Options:**  
   * **Frontend:** **Vanilla JavaScript** using **DOM manipulation** (document.getElementById, document.createElement, element.innerHTML, element.appendChild).  
   * **Styling (Optional but Recommended):** Use a minimal CSS framework like **Pico.css** or **Water.css**. You just add one line to your HTML, and it provides beautiful, clean styling with no classes to write, which is perfect for a hackathon.
+
+#### Feature 6: Agentic Shopping with Kroger API (NEW)
+
+* **Description:** After the shopping list is generated, the user can command GrocerGenie to add the items to their Kroger shopping cart using the Kroger MCP Server.  
+* **Development Steps:**  
+  1. **Setup Kroger MCP Server:** The first priority is to get the Kroger MCP Server running. Follow the README.md instructions to register an application on the Kroger Developer Portal, get your credentials (CLIENT\_ID, CLIENT\_SECRET), and configure them in the server's environment.  
+  2. **Extend UI:** Add a new button to the UI, "Add to Kroger Cart," which becomes active after a shopping list is generated.  
+  3. **Agentic Workflow:** When the user clicks the new button, trigger the agentic shopping logic:  
+     * **Find Products:** For each item in the generated shopping list, the agent must use the search\_products tool from the Kroger MCP to find the corresponding product at the user's preferred store. For the MVP, the agent can simply select the first result returned for each search term.  
+     * **Collect Product IDs:** The agent will collect the productId for each item it finds.  
+     * **Add to Cart:** Once all items have been searched, the agent will use the bulk\_add\_to\_cart tool, passing in the list of collected product IDs and their quantities.  
+  4. **User Feedback:** The agent should report its progress back to the user, confirming which items were successfully found and added to the cart, and which (if any) could not be found.  
+* **Tools & Options:**  
+  * **Primary Tool:** The **Kroger MCP Server** as described in the provided README.md.  
+  * **Backend:** The agent's core logic will orchestrate calls to the tools provided by the MCP server (search\_products, bulk\_add\_to\_cart).  
+* **Key Considerations & Limitations:**  
+  * **Authentication:** The agent must handle the initial user authentication flow required by the Kroger API. The MCP server documentation indicates this is handled via a browser prompt.  
+  * **One-Way Cart:** As per the documentation, the Kroger Public API can **add** items to the cart but **cannot view or remove them**. The agent's dialogue with the user must make this clear. It should state, "I have added these items to your Kroger cart. To make changes or check out, please visit the Kroger app or website."  
+  * **Store Location:** The agent should first ensure a preferred store location is set using the set\_preferred\_location tool, as product searches are location-specific.
