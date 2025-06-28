@@ -146,6 +146,8 @@ def fetch_recipes(cuisine=None, dietary_restrictions=None, num_meals=3):
                 recipes.append(recipe)
             
             return recipes
+        else:
+            return []
     except Exception as e:
         print(f"Error fetching recipes: {e}")
         return []

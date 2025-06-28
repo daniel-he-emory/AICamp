@@ -67,7 +67,9 @@ class GrocerGenieChat {
         messageContent.className = 'message-content';
         
         if (typeof content === 'string') {
-            messageContent.innerHTML = `<p>${content}</p>`;
+            const p = document.createElement('p');
+            p.textContent = content;
+            messageContent.appendChild(p);
         } else {
             messageContent.appendChild(content);
         }
@@ -210,3 +212,8 @@ class GrocerGenieChat {
 document.addEventListener('DOMContentLoaded', () => {
     new GrocerGenieChat();
 });
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = GrocerGenieChat;
+}
