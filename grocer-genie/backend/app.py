@@ -6,12 +6,13 @@ import requests
 from datetime import datetime
 import openai
 import logging
+import re
 
 app = Flask(__name__)
 app.secret_key = 'grocer-genie-secret-key'
 CORS(app)
 
-KROGER_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vYXBpLmtyb2dlci5jb20vdjEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiWjRGZDNtc2tJSDg4aXJ0N0xCNWM2Zz09IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhaWNhbXAtYmJjNjc1ZDYiLCJleHAiOjE3NTExNDIyOTUsImlhdCI6MTc1MTE0MDQ5MCwiaXNzIjoiYXBpLmtyb2dlci5jb20iLCJzdWIiOiI1MzgxZDNiMi1mM2JkLTU2NDYtYWI0Zi05YzZmNDUwNjg2NWQiLCJzY29wZSI6InByb2R1Y3QuY29tcGFjdCIsImF1dGhBdCI6MTc1MTE0MDQ5NTQ0MDgyMzk2NCwiYXpwIjoiYWljYW1wLWJiYzY3NWQ2In0.FPrEA7NBTTy_jgLK0xrB-la4hoBUHDO7cmaApJUmtyNSTw1EyiN9T9P8HOFHIE8pqTwTBIKczP4gbnirPe7LcB689CGO68I8TXUP0QTxFQGZNDnAcrUiQKPySo1484OXZO34OtiRN9KXrNfVXUdVQ5-8bxeYmFAZyOMZMrjJ_tCA8lIqUX_3a0DK29Lir2VCROvHqs1KFczq460oQILUtII4XDCSalGpYLY2EU2nNwNzJIV4yr8EjDIlH9gZoPkE4OoQQPNMCWHdNYwWetZ87IFcST7YEOpSu6bZtSMW8I6RSLcWDiegW22RfpcRJzqZ_cSLS2ybZad1iC04Ricm4Q"
+KROGER_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vYXBpLmtyb2dlci5jb20vdjEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiWjRGZDNtc2tJSDg4aXJ0N0xCNWM2Zz09IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhaWNhbXAtYmJjNjc1ZDYiLCJleHAiOjE3NTExNTU0NDMsImlhdCI6MTc1MTE1MzYzOCwiaXNzIjoiYXBpLmtyb2dlci5jb20iLCJzdWIiOiI1MzgxZDNiMi1mM2JkLTU2NDYtYWI0Zi05YzZmNDUwNjg2NWQiLCJzY29wZSI6InByb2R1Y3QuY29tcGFjdCIsImF1dGhBdCI6MTc1MTE1MzY0Mzc2MzI3OTc0MCwiYXpwIjoiYWljYW1wLWJiYzY3NWQ2In0.aLG3GUODZEdqttlIEyKvtIurrfHuSUECjcSCKQO8JKVxT7REyBXhTm7RkQy6k0oDp5H1f20kXyRtHF1o5EJQ5412Zh0tkHCDvAOHr3X0oTnEfnbI2o1skfIYK4A5NAVPYmhTlzslhY7Ixsr7FFuEZW6P7yoovbuP8p4qfAq3eE4CCqjyc71XJnru6vOVPjEP6bG4tISOTQG6UkmcikdyD3n0nInM7Lz__MYr33_FtTtM2Eo6bJ9lEzoQArTsGANxnXjx2L7sM2pXpNDm0_hORktT1nL7En1W1JkOPEd2lColOmiO91L0dDv_H-NWURKNr7KFChIaiFnN2jyZwreu2A"
 
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
@@ -26,13 +27,15 @@ class SessionState:
         self.current_meal_plan = []
         self.current_shopping_list = []
         self.user_preferences = {}
+        self.pending_intent = None  # Track pending user intent for context
         
     def to_dict(self):
         return {
             'pantry': self.pantry,
             'current_meal_plan': self.current_meal_plan,
             'current_shopping_list': self.current_shopping_list,
-            'user_preferences': self.user_preferences
+            'user_preferences': self.user_preferences,
+            'pending_intent': self.pending_intent
         }
     
     def from_dict(self, data):
@@ -40,6 +43,7 @@ class SessionState:
         self.current_meal_plan = data.get('current_meal_plan', [])
         self.current_shopping_list = data.get('current_shopping_list', [])
         self.user_preferences = data.get('user_preferences', {})
+        self.pending_intent = data.get('pending_intent', None)
 
 def get_session_state():
     if 'state' not in session:
@@ -417,8 +421,15 @@ def chat_with_agent():
     # Load pantry from file
     state.pantry = load_pantry()
     
-    # Recognize intent
+    # Check if we have a pending intent and the message might be a response to our request
     intent = recognize_intent(message)
+    
+    # Handle pending intent context - if user just provided zip code, continue with pending cart intent
+    if (state.pending_intent == 'add_to_cart' and 
+        intent == 'clarification' and 
+        re.search(r'\b\d{5}\b', message)):
+        intent = 'add_to_cart'
+        logger.info(f"Context override: Detected zip code in clarification, continuing with cart intent")
     
     response = {'type': 'text', 'message': ''}
     
@@ -478,14 +489,15 @@ def chat_with_agent():
     elif intent == 'add_to_cart':
         if not state.user_preferences.get('zip_code'):
             # Check if message contains a zip code
-            import re
             zip_match = re.search(r'\b\d{5}\b', message)
             if zip_match:
                 zip_code = zip_match.group()
                 state.user_preferences['zip_code'] = zip_code
+                state.pending_intent = None  # Clear pending intent
                 response['message'] = f"Got it! I've set your zip code to {zip_code}. Now let me add your items to the Kroger cart..."
                 # Continue with cart logic below
             else:
+                state.pending_intent = 'add_to_cart'  # Set pending intent
                 response['message'] = "I need your zip code to find a nearby Kroger store. What is your zip code?"
                 save_session_state(state)
                 return jsonify(response)
@@ -527,6 +539,9 @@ def chat_with_agent():
                     response['message'] = f"Sorry, I had trouble adding items to your cart: {message}"
             else:
                 response['message'] = f"I couldn't find any of the items in your shopping list at Kroger: {', '.join(not_found_items)}"
+        
+        # Clear pending intent after cart operation completes
+        state.pending_intent = None
     
     else:
         response['message'] = "I'm not sure what you want to do. You can ask me to check your pantry, update your pantry, create a meal plan, or add items to your Kroger cart."
