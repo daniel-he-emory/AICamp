@@ -183,12 +183,64 @@ class GrocerGenieChat {
             const ul = document.createElement('ul');
             recipe.ingredients.forEach(ingredient => {
                 const li = document.createElement('li');
-                li.textContent = `${ingredient.measure} ${ingredient.name}`.trim();
+                
+                // Handle different ingredient structures
+                let ingredientText = '';
+                
+                if (ingredient.has !== undefined) {
+                    // AI-generated recipe structure: {name, has, substitution}
+                    const status = ingredient.has ? '✅' : '❌';
+                    ingredientText = `${status} ${ingredient.name}`;
+                    
+                    if (ingredient.substitution) {
+                        ingredientText += ` (substitute: ${ingredient.substitution})`;
+                    }
+                } else if (ingredient.measure) {
+                    // TheMealDB structure: {name, measure}
+                    ingredientText = `${ingredient.measure} ${ingredient.name}`.trim();
+                } else {
+                    // Fallback: just the name
+                    ingredientText = ingredient.name;
+                }
+                
+                li.textContent = ingredientText;
                 ul.appendChild(li);
             });
             
             ingredientsList.appendChild(ul);
             card.appendChild(ingredientsList);
+        }
+        
+        // Add cooking instructions if available
+        if (recipe.instructions) {
+            const instructionsTitle = document.createElement('h4');
+            instructionsTitle.textContent = 'Instructions:';
+            instructionsTitle.style.marginTop = '15px';
+            card.appendChild(instructionsTitle);
+            
+            const instructions = document.createElement('p');
+            instructions.textContent = recipe.instructions;
+            instructions.style.marginTop = '5px';
+            card.appendChild(instructions);
+        }
+        
+        // Add cooking time if available
+        if (recipe.cooking_time) {
+            const timeDiv = document.createElement('div');
+            timeDiv.innerHTML = `<strong>⏱️ Cooking Time:</strong> ${recipe.cooking_time}`;
+            timeDiv.style.marginTop = '10px';
+            timeDiv.style.color = '#666';
+            card.appendChild(timeDiv);
+        }
+        
+        // Add tips if available
+        if (recipe.tips) {
+            const tipsDiv = document.createElement('div');
+            tipsDiv.innerHTML = `<strong>💡 Tips:</strong> ${recipe.tips}`;
+            tipsDiv.style.marginTop = '10px';
+            tipsDiv.style.color = '#4CAF50';
+            tipsDiv.style.fontStyle = 'italic';
+            card.appendChild(tipsDiv);
         }
         
         return card;

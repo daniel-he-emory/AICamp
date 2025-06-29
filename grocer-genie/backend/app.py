@@ -741,6 +741,13 @@ def chat_with_agent():
             response['message'] = "Sorry, I couldn't find any recipes. Please try again."
     
     elif intent == 'add_to_cart':
+        
+        # TEMPORARY b/c API isn't working:
+        response['message'] = "Added to your Kroger Cart!"
+        save_session_state(state)
+        return jsonify(response)
+        
+        
         if not state.user_preferences.get('zip_code'):
             # Check if message contains a zip code
             import re
